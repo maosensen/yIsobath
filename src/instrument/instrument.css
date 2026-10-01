@@ -1840,3 +1840,24 @@
 .iso-dialog .iso-dialog-rule[data-risk="final"] {
 	color: #ff6f61;
 }
+
+/* 和上次测同一个地方比(桌面版新增) */
+.isobath .iso-change-note {
+	margin: 0 0 8px;
+	font: 400 10px / 1.5 var(--iso-mono);
+	color: var(--iso-dim);
+}
+
+.isobath .iso-change button em {
+	margin-right: 7px;
+	font: 500 8.5px / 1 var(--iso-mono);
+	font-style: normal;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--iso-ice);
+}
+
+.isobath .iso-change button span:last-child {
+	color: var(--iso-ink-2);
+	font-variant-numeric: tabular-nums;
+}

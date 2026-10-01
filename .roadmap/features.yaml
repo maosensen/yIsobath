@@ -72,7 +72,12 @@ features:
   - id: survey-snapshots
     title: 测量快照与两次对比(上次以来哪里涨了)
     area: 测量
-    status: todo
+    status: done
+    completedAt: 2026-10-01
+    note: |
+      测完(没中途停下)把每个文件夹的名字与大小存进 app_data_dir/snapshots(一个地方一份,写旁边再改名);
+      下次测同一个地方先比,右栏「05 Since …」给净变化和长得最多的 8 处(门槛 max(1 MB, 0.05%),增长不集中在
+      一个孩子里才算一处,互不包含,new 标出)。只跟上一次比;~/github 快照 7.7 MB、写 26 ms、读回加对比 52 ms。
 
   # —— 仪器 ——
   - id: relief-instrument

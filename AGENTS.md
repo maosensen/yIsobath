@@ -155,6 +155,7 @@ src-tauri/src/
 │   ├── walk.rs       # parallel walk → the full in-memory tree (`Dir`)
 │   ├── emit.rs       # fold the tree under the node budget → `SurveyNode`s
 │   ├── classify.rs   # file types by extension, rule tags by name (mirrors the catalog's rules)
+│   ├── snapshot.rs   # each place's folder sizes for the next survey, and where it grew since the last
 │   └── system.rs     # data volume, boot volume name, statfs, Full Disk Access probe, Trash guard
 └── error.rs          # AppError (typed, serializable, IPC-facing)
 examples/survey.rs    # `cargo run --release --example survey -- <path>`: time a walk, no UI
@@ -206,6 +207,7 @@ Migrate `store` schemas and DB schemas with versioned migrations on startup; don
 - **Sizes are allocated blocks** (`blocks × 512`), hard links count once (by `(dev, ino)` for `nlink > 1`), one device only (folders on another `st_dev` are skipped and counted). Keep `du` as the reference: a survey of a folder must match `du -sk` of it.
 - **Nothing is silently dropped.** Unreadable folders, other devices and extra hard links are counted in `SurveyStats` and shown.
 - **Fold, don't truncate.** The instrument gets at most `NODE_BUDGET` nodes; `emit::threshold` raises the fold threshold until the tree fits. `count()` and `Emitter::open()` must agree on every folder's fate (`fate()`) — the tests check node counts and byte conservation; keep them passing. Folders the user expanded (`Survey::expanded`, an `emit::Expanded` name tree) open at their own threshold, and both functions read that same tree.
+- **Snapshots hold names and sizes only.** One per place in `app_data_dir()/snapshots/`, folder names, byte totals and file counts, nothing else; a partial survey is never written. Writing goes beside the old file and renames over it — no deletes. The comparison (`snapshot::change`) is computed once per survey and again after a move to the Trash, never per expansion.
 - **Tags mirror the catalog.** `classify::Tag::as_str` values are what the rules in `src/instrument/catalog.ts` match. Adding a rule = a tag in Rust + a rule in the catalog, in the same commit.
 
 ### Survey & Trash red lines

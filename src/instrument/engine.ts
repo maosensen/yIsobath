@@ -816,15 +816,8 @@ export class Engine {
 		focus: readonly string[],
 		select: readonly string[],
 	) {
-		const locate = (names: readonly string[]) => {
-			for (let k = names.length; k >= 0; k--) {
-				const i = v.findSegments(names.slice(0, k));
-				if (i >= 0) return { i, exact: k === names.length };
-			}
-			return { i: 0, exact: false };
-		};
-		const f = locate(focus);
-		const s = select.length ? locate(select) : { i: -1, exact: false };
+		const f = v.nearest(focus);
+		const s = select.length ? v.nearest(select) : { i: -1, exact: false };
 		this.volume = v;
 		this.pickIndex = null;
 		this.version++;

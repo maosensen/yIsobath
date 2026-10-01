@@ -4,6 +4,8 @@
 //! - [`walk`] lists everything in parallel and keeps the full tree in memory;
 //! - [`emit`] folds it under a node budget into [`SurveyNode`]s;
 //! - [`classify`] names file types and rule tags;
+//! - [`snapshot`] keeps each place's folder sizes for the next survey, and
+//!   names where it grew in between;
 //! - [`system`] knows the data volume, its capacity, Full Disk Access, and
 //!   which paths must never be moved to the Trash.
 //!
@@ -13,6 +15,7 @@
 
 pub mod classify;
 pub mod emit;
+pub mod snapshot;
 pub mod system;
 pub mod walk;
 
@@ -23,6 +26,7 @@ use std::time::{Duration, Instant};
 use serde::{Deserialize, Serialize};
 
 use emit::{Emitter, Expanded, NODE_BUDGET, SurveyNode};
+use snapshot::{Snapshot, SurveyChange};
 use walk::{Dir, Progress, STOP_CANCEL, WalkStats, Walker};
 
 /// What to survey.
@@ -89,6 +93,10 @@ pub struct SurveyResult {
     pub root: SurveyNode,
     pub meta: SurveyMeta,
     pub stats: SurveyStats,
+    /// What changed since the last survey of this place; none the first time.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[specta(optional)]
+    pub change: Option<SurveyChange>,
 }
 
 /// Streamed while a walk runs.
@@ -112,6 +120,9 @@ pub struct Survey {
     pub threshold: u64,
     /// Folded folders the user went into.
     pub expanded: Expanded,
+    /// The last survey of this place before this one, and what changed since.
+    pub previous: Option<Snapshot>,
+    pub change: Option<SurveyChange>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -251,10 +262,23 @@ pub fn run(
         partial: mode != 0,
         threshold,
         expanded: Expanded::default(),
+        previous: None,
+        change: None,
     })
 }
 
 impl Survey {
+    /// Compare with the last survey of this place, if there was one.
+    pub fn compare(&mut self, previous: Option<Snapshot>) {
+        self.change = previous.as_ref().map(|p| snapshot::change(&self.tree, p));
+        self.previous = previous;
+    }
+
+    /// What this survey leaves for the next one of the same place.
+    pub fn snapshot(&self) -> Snapshot {
+        Snapshot::of(&self.root, &self.tree)
+    }
+
     /// The folded tree, meta and stats, ready to send.
     pub fn result(&self) -> SurveyResult {
         let dups = emit::duplicate_keys(&self.tree);
@@ -280,6 +304,7 @@ impl Survey {
                 threshold: self.threshold as f64,
                 full_disk_access: system::full_disk_access(),
             },
+            change: self.change.clone(),
         }
     }
 
@@ -341,6 +366,10 @@ impl Survey {
             }
         }
         self.tree.total();
+        // What went to the Trash no longer grew.
+        if let Some(p) = &self.previous {
+            self.change = Some(snapshot::change(&self.tree, p));
+        }
         true
     }
 }
@@ -466,6 +495,45 @@ mod tests {
         assert!(!survey.expand(&path.join("small")));
         assert!(!survey.expand(&path.join("big.bin")));
         assert!(!survey.expand(Path::new("/elsewhere")));
+    }
+
+    #[test]
+    fn the_second_survey_of_a_place_names_where_it_grew() {
+        let tmp = tempfile::tempdir().unwrap();
+        let r = tmp.path().join("place");
+        let kept = tmp.path().join("snapshots");
+        fs::create_dir_all(r.join("photos")).unwrap();
+        fs::create_dir_all(r.join("code")).unwrap();
+        fs::write(r.join("photos/a.jpg"), vec![1u8; 2_000_000]).unwrap();
+        fs::write(r.join("code/main.rs"), vec![2u8; 3_000]).unwrap();
+        let survey_of = |path: &Path| {
+            let (path, meta) = resolve(&SurveyTarget::Folder {
+                path: path.to_string_lossy().into_owned(),
+            })
+            .unwrap();
+            let stop = AtomicU8::new(0);
+            let mut s = run(&path, meta, &stop, |_| {}).unwrap();
+            s.compare(snapshot::load(&kept, &s.root));
+            snapshot::save(&kept, &s.snapshot()).unwrap();
+            s
+        };
+        let first = survey_of(&r);
+        assert!(first.result().change.is_none());
+
+        fs::write(r.join("photos/b.jpg"), vec![3u8; 3_000_000]).unwrap();
+        fs::create_dir_all(r.join("downloads")).unwrap();
+        fs::write(r.join("downloads/big.dmg"), vec![4u8; 1_500_000]).unwrap();
+        let mut second = survey_of(&r);
+        let change = second.result().change.unwrap();
+        let places: Vec<_> = change.places.iter().map(|p| p.path.join("/")).collect();
+        assert_eq!(places, ["photos", "downloads"]);
+        assert!(change.places[1].new);
+        assert!(change.was < second.tree.bytes as f64);
+
+        // Moved to the Trash, it no longer counts as growth.
+        assert!(second.moved_to_trash(&second.root.join("downloads")));
+        let places = second.result().change.unwrap().places;
+        assert_eq!(places.len(), 1);
     }
 
     #[test]

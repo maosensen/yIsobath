@@ -189,6 +189,45 @@ describe("a native folder survey", () => {
 		);
 	});
 
+	it("walks a path as far as the tree goes", () => {
+		const nm = v.find("~/github/app/node_modules");
+		// 折叠的 node_modules 里面的路径走到它为止
+		expect(v.nearest(["app", "node_modules", "react", "cjs"])).toEqual({
+			i: nm,
+			exact: false,
+		});
+		expect(v.nearest(["app", "node_modules"])).toEqual({ i: nm, exact: true });
+		expect(v.nearest([])).toEqual({ i: 0, exact: true });
+		expect(v.pathOf(["app", "node_modules", "react"])).toBe(
+			"~/github/app/node_modules/react",
+		);
+		expect(v.pathOf(v.segments(nm))).toBe(v.path(nm));
+	});
+
+	it("carries what changed since the last survey", () => {
+		expect(v.meta.change).toBeUndefined();
+		const again = volumeOf(
+			{
+				...result({}),
+				change: {
+					since: 1_790_000_000_000,
+					was: 300e6,
+					places: [
+						{
+							path: ["app", "node_modules"],
+							was: 280e6,
+							now: 300e6,
+							new: false,
+						},
+					],
+				},
+			},
+			"now",
+		);
+		expect(again.meta.change?.was).toBe(300e6);
+		expect(again.meta.change?.places[0].path).toEqual(["app", "node_modules"]);
+	});
+
 	it("points loose files at their folder", () => {
 		const app = v.find("~/github/app");
 		const loose = v.children(app).find((c) => v.isAgg(c)) ?? -1;

@@ -7,8 +7,8 @@
  */
 
 import { format } from "date-fns";
-import type { SurveyResult } from "@/lib/bindings";
-import { Volume, type VolumeDraft } from "./volume";
+import type { SurveyChange, SurveyResult } from "@/lib/bindings";
+import { Volume, type VolumeChange, type VolumeDraft } from "./volume";
 
 /** 测量时刻,和演示卷的 surveyedAt 同一种写法(本地时间,到分钟)。 */
 export function surveyStamp(at = new Date()) {
@@ -35,7 +35,22 @@ export function volumeOf(result: SurveyResult, when: string) {
 		display: isVolume ? undefined : m.display,
 		root: m.root,
 		when,
+		change: result.change ? changeOf(result.change) : undefined,
+		partial: result.stats.partial || undefined,
 	});
+}
+
+function changeOf(c: SurveyChange): VolumeChange {
+	return {
+		since: c.since ?? 0,
+		was: c.was ?? 0,
+		places: c.places.map((p) => ({
+			path: p.path,
+			was: p.was ?? 0,
+			now: p.now ?? 0,
+			new: p.new,
+		})),
+	};
 }
 
 /** 测完之后回放扫描多久:按节点数,3–9 秒。 */

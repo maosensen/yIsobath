@@ -25,6 +25,11 @@ All notable changes to yIsobath are documented here. The format is based on
   alone. It comes from the tree the survey already holds, so nothing is walked
   again, and it stays open after a move to the Trash. Folders that would only
   show their loose files stay folded.
+- **What grew since last time.** Each place you survey leaves a snapshot of
+  its folder sizes, holding names and sizes only. The next survey of it shows
+  the net change and the folders that grew most, each named at the depth where
+  the growth actually is. New folders are marked. Click one to bring it into
+  view.
 - **Move to Trash.** Use the focus panel, a right-click on the relief, or
   ⌘⌫. Every move asks first, showing the path, the size and the rule that
   flagged it. The survey's root, folders the system or your account depends

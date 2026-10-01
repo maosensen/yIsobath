@@ -54,6 +54,17 @@ export const en = {
 		expandFailed: "Could not open this folder",
 		demo: "The demo volume has no files of its own",
 	},
+	change: {
+		title: "Since the last survey",
+		since: (when: string) => `Since ${when}`,
+		first: "First survey of this place. The next one will show what grew.",
+		partial:
+			"This survey stopped early, so it is not compared with the last one.",
+		net: (was: string, now: string, ago: string) =>
+			`${was} → ${now} since the last survey, ${ago}.`,
+		none: "No folder grew enough to stand out.",
+		new: "new",
+	},
 	trash: {
 		title: (name: string) => `Move “${name}” to the Trash?`,
 		rule: (title: string, risk: string) => `${title} · ${risk}`,

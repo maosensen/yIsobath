@@ -10,15 +10,19 @@
 
 use std::path::{Path, PathBuf};
 use std::sync::atomic::Ordering;
+use std::time::Instant;
 
 use serde::Serialize;
+use tauri::Manager;
 use tauri::ipc::Channel;
 use tauri_plugin_opener::OpenerExt;
 
 use crate::error::{AppError, AppResult};
 use crate::state::AppState;
 use crate::survey::walk::{STOP_CANCEL, STOP_SHOW};
-use crate::survey::{self, SurveyError, SurveyProgress, SurveyResult, SurveyTarget, system};
+use crate::survey::{
+    self, SurveyError, SurveyProgress, SurveyResult, SurveyTarget, snapshot, system,
+};
 
 /// What the start panel needs before anything is walked.
 #[derive(Debug, Serialize, specta::Type)]
@@ -50,12 +54,15 @@ pub fn survey_places() -> SurveyPlaces {
 }
 
 /// Walk a volume or a folder. Progress streams through `on_progress`; the
-/// folded tree comes back when the walk ends (or is stopped with "show").
+/// folded tree comes back when the walk ends (or is stopped with "show"),
+/// compared with the last survey of the same place. A walk that finished is
+/// kept as that place's snapshot for the next one.
 #[tauri::command]
 #[specta::specta]
 pub async fn survey(
     target: SurveyTarget,
     on_progress: Channel<SurveyProgress>,
+    app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
 ) -> AppResult<SurveyResult> {
     if state.walking.swap(true, Ordering::SeqCst) {
@@ -65,13 +72,38 @@ pub async fn survey(
     let stop = state.stop.clone();
     let slot = state.survey.clone();
     let walking = state.walking.clone();
+    let snapshots = app
+        .path()
+        .app_data_dir()
+        .map(|d| d.join("snapshots"))
+        .inspect_err(|e| log::warn!("survey: no data folder for snapshots: {e}"))
+        .ok();
     let outcome = tauri::async_runtime::spawn_blocking(move || {
         let (path, meta) = survey::resolve(&target)?;
         log::info!("survey: walking {}", path.display());
-        let s = survey::run(&path, meta, &stop, |p| {
+        let mut s = survey::run(&path, meta, &stop, |p| {
             let _ = on_progress.send(p);
         })?;
+        // A walk stopped early is not compared either: what it did not list
+        // would read as space given back.
+        if let Some(dir) = &snapshots
+            && !s.partial
+        {
+            s.compare(snapshot::load(dir, &s.root));
+        }
         let result = s.result();
+        if let Some(dir) = &snapshots
+            && !s.partial
+        {
+            let started = Instant::now();
+            match snapshot::save(dir, &s.snapshot()) {
+                Ok(()) => log::info!(
+                    "survey: snapshot kept ({:.0} ms)",
+                    started.elapsed().as_secs_f64() * 1000.0
+                ),
+                Err(e) => log::warn!("survey: could not keep a snapshot: {e}"),
+            }
+        }
         log::info!(
             "survey: {} files, {} folders, {} nodes (fold at {} B), {} denied, {:.1} s",
             result.stats.files,

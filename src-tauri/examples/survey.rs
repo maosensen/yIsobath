@@ -1,6 +1,7 @@
 //! Survey a folder from the command line and print what the app would get:
-//! totals, the fold threshold, node count, payload size and timings, and what
-//! expanding the largest expandable folder costs.
+//! totals, the fold threshold, node count, payload size and timings, what the
+//! snapshot for the next survey weighs, and what expanding the largest
+//! expandable folder costs.
 //!
 //!     cargo run --release --example survey -- ~/github
 //!     cargo run --release --example survey -- volume
@@ -62,6 +63,33 @@ fn main() {
             println!("  {:>9.2} GB  {}", size(k) / 1e9, k.name);
         }
     }
+
+    // What the snapshot for the next survey of this place weighs (written to a
+    // temporary folder that goes away afterwards, not the app's own data).
+    let started = Instant::now();
+    let snap = s.snapshot();
+    let tmp = tempfile::tempdir().expect("temporary folder");
+    let scratch = tmp.path();
+    survey::snapshot::save(scratch, &snap).expect("save snapshot");
+    let saved = started.elapsed();
+    let size: u64 = std::fs::read_dir(scratch)
+        .map(|d| {
+            d.flatten()
+                .filter_map(|e| e.metadata().ok())
+                .map(|m| m.len())
+                .sum()
+        })
+        .unwrap_or(0);
+    let started = Instant::now();
+    let back = survey::snapshot::load(scratch, &path).expect("load snapshot");
+    let change = survey::snapshot::change(&s.tree, &back);
+    println!(
+        "snapshot    {:.1} MB · save {:.0} ms · load + compare {:.0} ms ({} places)",
+        size as f64 / 1e6,
+        saved.as_secs_f64() * 1000.0,
+        started.elapsed().as_secs_f64() * 1000.0,
+        change.places.len()
+    );
 
     // What going into the largest expandable folder costs: the whole survey is
     // folded and sent again.

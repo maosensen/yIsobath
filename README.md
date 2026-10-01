@@ -14,6 +14,9 @@ Here a Rust walker surveys the real disk.
 
 - It reads **names, on-disk sizes and modification times**, and never opens a
   file. Nothing leaves the computer.
+- It keeps **one snapshot per surveyed place**, holding folder names and sizes
+  only, in the app's data folder. The next survey of that place uses it to show
+  what grew in between.
 - Sizes are **allocated blocks**, as `du` counts them. A sparse disk image
   counts what it occupies, a file evicted to iCloud counts nothing, and a file
   with several hard links counts once.

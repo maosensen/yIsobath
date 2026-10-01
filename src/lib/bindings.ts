@@ -7,7 +7,9 @@ export const commands = {
 	surveyPlaces: () => __TAURI_INVOKE<SurveyPlaces>("survey_places"),
 	/**
 	 *  Walk a volume or a folder. Progress streams through `on_progress`; the
-	 *  folded tree comes back when the walk ends (or is stopped with "show").
+	 *  folded tree comes back when the walk ends (or is stopped with "show"),
+	 *  compared with the last survey of the same place. A walk that finished is
+	 *  kept as that place's snapshot for the next one.
 	 */
 	survey: (target: SurveyTarget, onProgress: Channel<SurveyProgress>) => typedError<SurveyResult_Serialize, AppError>(__TAURI_INVOKE("survey", { target, onProgress })),
 	/**
@@ -45,6 +47,15 @@ export type AppError = { code: "NotFound"; detail: string } | { code: "Io"; deta
 /**  User-visible catch-all. Internal details belong in the logs, not here. */
 { code: "Internal" };
 
+export type ChangePlace = {
+	/**  Folder names from the survey's root down. */
+	path: string[],
+	was: number | null,
+	now: number | null,
+	/**  It was not there last time. */
+	new: boolean,
+};
+
 /**  Development switches, read from the environment in debug builds only. */
 export type DevOptions = DevOptions_Serialize | DevOptions_Deserialize;
 
@@ -66,6 +77,16 @@ export type DevOptions_Serialize = {
 
 /**  The ten file types, in the order of `ISO_TYPE_KEYS` in the catalog. */
 export type FileKind = "vid" | "img" | "aud" | "mdl" | "src" | "bin" | "vmi" | "arc" | "doc" | "sys";
+
+/**  What changed since the last survey of the same place. */
+export type SurveyChange = {
+	/**  When the previous survey finished, in milliseconds since the epoch. */
+	since: number | null,
+	/**  What the place held then. */
+	was: number | null,
+	/**  Where it grew most, largest growth first. */
+	places: ChangePlace[],
+};
 
 /**  What the instrument shows about the surveyed place. */
 export type SurveyMeta = SurveyMeta_Serialize | SurveyMeta_Deserialize;
@@ -193,12 +214,16 @@ export type SurveyResult_Deserialize = {
 	root: SurveyNode_Deserialize,
 	meta: SurveyMeta_Deserialize,
 	stats: SurveyStats,
+	/**  What changed since the last survey of this place; none the first time. */
+	change?: SurveyChange | null,
 };
 
 export type SurveyResult_Serialize = {
 	root: SurveyNode_Serialize,
 	meta: SurveyMeta_Serialize,
 	stats: SurveyStats,
+	/**  What changed since the last survey of this place; none the first time. */
+	change?: SurveyChange | null,
 };
 
 export type SurveyStats = {

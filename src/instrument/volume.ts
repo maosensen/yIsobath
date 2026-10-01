@@ -63,6 +63,16 @@ export interface Finding {
 	files: number;
 }
 
+/** 和上次测同一个地方比(原生测量才有,`src-tauri/src/survey/snapshot.rs`)。 */
+export interface VolumeChange {
+	/** 上次测完的时刻(毫秒)。 */
+	since: number;
+	/** 上次一共多少字节。 */
+	was: number;
+	/** 长得最多的几处:从根往下的名字,互不包含,长得多的在前。 */
+	places: { path: string[]; was: number; now: number; new: boolean }[];
+}
+
 export interface VolumeMeta {
 	/** 卷名,也是树根的名字。 */
 	name: string;
@@ -82,6 +92,10 @@ export interface VolumeMeta {
 	root?: string;
 	/** 测量时刻的说明。 */
 	when: string;
+	/** 和上次测同一个地方比;第一次测这里(或演示卷)就没有。 */
+	change?: VolumeChange;
+	/** 测量中途停下了(没列完,也就不和上次比)。 */
+	partial?: boolean;
 }
 
 /** Volume 读的树:演示卷的生成器和原生测量(src-tauri/src/survey/emit.rs)交过来的都是这个形状。 */
@@ -454,13 +468,23 @@ export class Volume {
 
 	/** 从卷根往下的一串名字 → 节点;找不到给 -1。 */
 	findSegments(parts: readonly string[]) {
+		const at = this.nearest(parts);
+		return at.exact ? at.i : -1;
+	}
+
+	/**
+	 * 一串名字在树里最深走得到哪个节点。走不到底(那一段被移走了,或者在折叠的块里面)时
+	 * exact 是 false,给的是还在的那一层。
+	 */
+	nearest(parts: readonly string[]) {
 		let i = 0;
-		for (const name of parts) {
-			const next = this.children(i).find((c) => this.name[c] === name);
-			if (next === undefined) return -1;
+		let k = 0;
+		for (; k < parts.length; k++) {
+			const next = this.children(i).find((c) => this.name[c] === parts[k]);
+			if (next === undefined) break;
 			i = next;
 		}
-		return i;
+		return { i, exact: k === parts.length };
 	}
 
 	/** 从卷根往下的名字(不含根)。 */
@@ -472,7 +496,11 @@ export class Volume {
 
 	/** 从卷根起的名字,家目录缩成 ~。 */
 	path(i: number) {
-		const parts = this.segments(i);
+		return this.pathOf(this.segments(i));
+	}
+
+	/** 一串从卷根往下的名字怎么写(不必是树里的节点,比如折叠的块里面)。 */
+	pathOf(parts: readonly string[]) {
 		const home = this.meta.home;
 		if (home?.every((h, k) => parts[k] === h)) {
 			const rest = parts.slice(home.length);

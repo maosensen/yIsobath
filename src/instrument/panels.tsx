@@ -1,5 +1,6 @@
-import { subDays } from "date-fns";
+import { format, formatDistanceToNowStrict, subDays } from "date-fns";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { T } from "@/lib/text";
 import {
 	ISO_AGE_BUCKET_DAYS,
 	ISO_RISKS,
@@ -649,7 +650,77 @@ export function FindingsPanel({
 					);
 				})}
 			</ol>
+			<ChangeSection volume={v} engine={engine} />
 		</section>
+	);
+}
+
+/** 正数带 +,负数带 −(和数字等宽的减号)。 */
+function signed(b: number) {
+	return `${b < 0 ? "−" : "+"}${fmt.bytes(Math.abs(b))}`;
+}
+
+/**
+ * 和上次测同一个地方比:净变化,和长得最多的几处。点一处就把它放进视野;它在折叠的块里面时,
+ * 选中的是那一块(点进去就按需展开)。
+ */
+function ChangeSection({
+	volume: v,
+	engine,
+}: {
+	volume: Volume;
+	engine: Engine;
+}) {
+	if (v.meta.source === "demo") return null;
+	const c = v.meta.change;
+	if (!c)
+		return (
+			<>
+				<Head index="05">{T.change.title}</Head>
+				<p className="iso-change-note">
+					{v.meta.partial ? T.change.partial : T.change.first}
+				</p>
+			</>
+		);
+	return (
+		<>
+			<Head index="05" aside={signed(v.bytes[0] - c.was)}>
+				{T.change.since(format(c.since, "MMM d, HH:mm"))}
+			</Head>
+			<p className="iso-change-note">
+				{T.change.net(
+					fmt.bytes(c.was),
+					fmt.bytes(v.bytes[0]),
+					formatDistanceToNowStrict(c.since, { addSuffix: true }),
+				)}
+			</p>
+			{c.places.length === 0 ? (
+				<p className="iso-change-note">{T.change.none}</p>
+			) : (
+				<ul className="iso-places iso-change">
+					{c.places.map((p) => {
+						const path = v.pathOf(p.path);
+						// 测的是一个文件夹时写它里面的相对路径:前面那截人人都一样,截短时反倒把名字截没了
+						const shown = v.meta.source === "folder" ? p.path.join("/") : path;
+						return (
+							<li key={p.path.join("/")}>
+								<button
+									type="button"
+									title={path}
+									onClick={() => engine.reveal(v.nearest(p.path).i)}
+								>
+									<span>{shortPath(shown)}</span>
+									<span>
+										{p.new && <em>{T.change.new}</em>}
+										{signed(p.now - p.was)}
+									</span>
+								</button>
+							</li>
+						);
+					})}
+				</ul>
+			)}
+		</>
 	);
 }
 

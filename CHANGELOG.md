@@ -6,6 +6,8 @@ All notable changes to yIsobath are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-01
+
 ### Added
 
 - **Survey your own disk.** Survey the whole data volume, your home folder or
@@ -40,5 +42,9 @@ All notable changes to yIsobath are documented here. The format is based on
   survey without access, the app says what macOS will ask for and what it
   will skip, and links to the right pane of System Settings.
 - **A demo volume** to explore before surveying anything.
+- **Updates itself.** The app checks for a new version once at launch and
+  installs it on request. Every update is signed and verified before it is
+  applied.
 
-[Unreleased]: https://github.com/maosensen/yIsobath/commits/main
+[Unreleased]: https://github.com/maosensen/yIsobath/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/maosensen/yIsobath/releases/tag/v0.1.0

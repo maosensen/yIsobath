@@ -30,12 +30,17 @@ modules:
   - id: signed-release
     title: Developer ID 签名 + 公证的安装包与自动更新
     tier: required
-    status: todo
-    note: 完全磁盘访问权限按签名身份记;签名不稳定的话每次更新都要重新授权。启用步骤见 .claude/release.md。
+    status: done
+    completedAt: 2026-10-01
+    note: |
+      v0.1.0 起 macOS 包用和 yAssets 同一个 Developer ID 签名并公证,更新包另有 minisign 签名(latest.json)。
+      完全磁盘访问权限按签名身份记,签名稳定,更新后权限还在。
   - id: tagged-release
     title: GitHub Release 与 CHANGELOG
     tier: required
-    status: todo
+    status: done
+    completedAt: 2026-10-01
+    note: v0.1.0 是第一个 Release:tag 触发 release.yml 四平台构建,body 取 CHANGELOG 对应小节。
 
 features:
   # —— 测量 ——
@@ -44,6 +49,7 @@ features:
     area: 测量
     status: done
     completedAt: 2026-10-01
+    shippedIn: v0.1.0
     note: |
       Rust 并行走盘(rayon,线程数为核数 × 2,8–32),只读名字、占用、修改时间,不打开文件内容。
       占用按实际分配的块算(稀疏的 Docker.raw、被 iCloud 移走的文件按真实占用),多个硬链接只算一次;
@@ -55,6 +61,7 @@ features:
     area: 测量
     status: done
     completedAt: 2026-10-01
+    shippedIn: v0.1.0
     note: |
       完整的树留在 Rust 内存里,发给界面的是折叠后的树:不到阈值 T 的目录折成一块(仍是真路径,能显示、能移到
       废纸篓,要进去就按需展开,见 lazy-expand),带规则记号或装着足够可回收内容的小目录照样展开;T 从 max(1 MB, 总量 / 10⁶) 起倍增到不超过
@@ -64,6 +71,7 @@ features:
     area: 测量
     status: done
     completedAt: 2026-10-01
+    shippedIn: v0.1.0
     note: |
       点进折叠的块(或选中按回车),expand_folder 从 Rust 内存里的完整树把它按自己的尺度重折(像单独测了它,
       2 万个节点的预算),整份测量重发、replaceVolume 换卷后钻进去,不重新走盘。展开过的目录记在 Survey.expanded
@@ -74,6 +82,7 @@ features:
     area: 测量
     status: done
     completedAt: 2026-10-01
+    shippedIn: v0.1.0
     note: |
       测完(没中途停下)把每个文件夹的名字与大小存进 app_data_dir/snapshots(一个地方一份,写旁边再改名);
       下次测同一个地方先比,右栏「05 Since …」给净变化和长得最多的 8 处(门槛 max(1 MB, 0.05%),增长不集中在
@@ -85,6 +94,7 @@ features:
     area: 仪器
     status: done
     completedAt: 2026-10-01
+    shippedIn: v0.1.0
     note: |
       yLookbook sections/isobath 的引擎、WebGL2 管线、标注层与面板整体搬进 src/instrument/,字体换成 fontsource。
       为 WKWebView 改过:分段条不用浮动的 legend(WebKit 不让它排进同一行);折叠的目录用暗玻璃材质;
@@ -95,6 +105,7 @@ features:
     area: 仪器
     status: done
     completedAt: 2026-10-01
+    shippedIn: v0.1.0
     note: 启动时回放一份生成的测量记录(明确标着 demo),菜单里随时回到它。
 
   # —— 回收 ——
@@ -103,6 +114,7 @@ features:
     area: 回收
     status: done
     completedAt: 2026-10-01
+    shippedIn: v0.1.0
     note: |
       沿用 yLookbook 的 14 条规则(风险:重新生成 / 需要判断 / 不可逆,带清理命令)。Rust 端按名字打记号:
       node_modules、DerivedData、有 src 的 dist / out / build、有 Cargo.toml 的 target、各家缓存、废纸篓;
@@ -113,6 +125,7 @@ features:
     area: 回收
     status: done
     completedAt: 2026-10-01
+    shippedIn: v0.1.0
     note: |
       焦点面板的操作条、右键菜单、⌘⌫,都先弹确认(路径、大小、命中的规则与风险,默认焦点在取消上)。
       Rust 端只接受当前测量里的路径,拒绝测量的根、系统与账户依赖的目录(/System、/usr、~/Library、~/Documents……)
@@ -123,6 +136,7 @@ features:
     area: 回收
     status: done
     completedAt: 2026-10-01
+    shippedIn: v0.1.0
     note: 零散小文件那一块的操作落到它所在的目录;复制出去的路径经过 firmlink(/Users/…,不是 /System/Volumes/Data/…)。
   - id: content-dedupe
     title: 按内容哈希确认重复文件
@@ -139,27 +153,33 @@ features:
     area: 窗口与系统
     status: done
     completedAt: 2026-10-01
+    shippedIn: v0.1.0
     note: 测整块盘或家目录前,没有权限就先说明会发生什么(会被问哪些、哪些会跳过),给打开系统设置的按钮;测完显示列不出的目录数。权限检测靠能否打开 TCC.db,不会触发授权弹窗。
   - id: desktop-shell
     title: 桌面外壳(继承自 yDesktopTemplate v0.2.0)
     area: 窗口与系统
     status: done
     completedAt: 2026-10-01
+    shippedIn: v0.1.0
     note: 单实例、窗口位置记忆、叠加式标题栏(红绿灯放在顶栏正中的高度,顶栏可拖动 / 双击缩放)、前端日志落盘。窗口改为不透明(仪器铺满整个窗口,用不上毛玻璃)。
 
   # —— 更新与发布 ——
   - id: self-update
     title: 自动更新
     area: 更新与发布
-    status: todo
+    status: done
+    completedAt: 2026-10-01
+    shippedIn: v0.1.0
     note: |
-      接线随模板而来;2026-10-01 公钥已填进 tauri.conf.json、createUpdaterArtifacts 已开、两个签名 secrets 已配,
-      仓库已公开(endpoint 是 maosensen/yIsobath 的 releases/latest)。第一次发版后才有 latest.json 可拿。
+      启动 5 秒后查一次 releases/latest 的 latest.json,有新版弹常驻提示、点了再装;更新包用 minisign 签名校验。
+      v0.1.0 是第一个带更新链的版本,真正拿到更新要等 v0.1.1。
   - id: release-pipeline
     title: 四平台发布流水线
     area: 更新与发布
-    status: todo
-    note: release.yml 随模板而来,Apple 签名与公证的 secrets 尚未配置。
+    status: done
+    completedAt: 2026-10-01
+    shippedIn: v0.1.0
+    note: tag v* 触发 release.yml:macOS(双架构)/ Windows / Linux 矩阵构建进同一个 draft Release,发布前填 body。
 
   # —— 工程化 ——
   - id: quality-gate
@@ -167,10 +187,12 @@ features:
     area: 工程化
     status: done
     completedAt: 2026-10-01
+    shippedIn: v0.1.0
     note: pnpm check(typecheck + biome + vitest + bindings 漂移 + rustfmt + clippy)。Rust 20 个单测覆盖分类、记号、折叠守恒、硬链接、停止 / 取消、废纸篓守护;前端 Vitest 覆盖卷模型与原生测量的路径。
   - id: dev-switches
     title: 开发开关与命令行测量
     area: 工程化
     status: done
     completedAt: 2026-10-01
+    shippedIn: v0.1.0
     note: YISOBATH_SURVEY=volume|home|/abs/path 启动即测、YISOBATH_PERF=1 每 5 秒把帧时间写进日志(只在 debug 构建生效);cargo run --release --example survey -- <path> 不开界面量走盘速度与折叠结果。

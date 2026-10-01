@@ -44,6 +44,7 @@ import { logger } from "@/lib/logger";
 import {
 	devOptions,
 	errorText,
+	expandFolder,
 	isCancel,
 	moveToTrash,
 	openPrivacySettings,
@@ -484,6 +485,48 @@ export function Instrument() {
 		setTrashing(null);
 	};
 
+	// ---------- 折叠的目录:按需展开 ----------
+	// 完整的树一直在 Rust 那边;点进一块折叠的目录,就请它把这一块按自己的尺度展开、
+	// 整份测量重发一次,换卷之后再钻进去 —— 和移到废纸篓之后一样,视角不跳。
+	useEffect(() => {
+		if (!engine) return;
+		let busy = false;
+		engine.onExpand = (i) => {
+			const v = engine.volume;
+			const path = v.absPath(i);
+			if (!path || busy) return;
+			busy = true;
+			const into = v.segments(i);
+			const started = performance.now();
+			expandFolder(path)
+				.then((result) => {
+					// 等的时候又测了一次、或者回到了演示卷:这份结果已经不是眼前这块卷的了
+					if (engine.volume !== v) return;
+					const focus = v.segments(engine.getSnapshot().focus);
+					engine.replaceVolume(volumeOf(result, v.meta.when), focus, []);
+					setLast((cur) => (cur ? { ...cur, stats: result.stats } : cur));
+					const j = engine.volume.findSegments(into);
+					if (j >= 0) engine.goTo(j);
+					logger.info(
+						{
+							ms: Math.round(performance.now() - started),
+							nodes: engine.volume.n,
+						},
+						"expanded a folded folder",
+					);
+				})
+				.catch((err) =>
+					toast.error(T.item.expandFailed, { description: errorText(err) }),
+				)
+				.finally(() => {
+					busy = false;
+				});
+		};
+		return () => {
+			engine.onExpand = null;
+		};
+	}, [engine]);
+
 	const subject = state ? (state.select >= 0 ? state.select : state.focus) : -1;
 
 	const announce = useMemo(() => {
@@ -492,8 +535,8 @@ export function Instrument() {
 		if (i < 0) return "";
 		return `${v.name[i]}, ${fmt.bytes(v.bytes[i])}, ${fmt.pct(v.bytes[i] / Math.max(1, v.bytes[state.focus]))} of ${
 			state.focus === 0 ? v.meta.name : v.name[state.focus]
-		}${v.canEnter(i) ? ". Press Enter to open." : "."}`;
-	}, [v, state]);
+		}${engine?.canOpen(i) ? ". Press Enter to open." : "."}`;
+	}, [engine, v, state]);
 
 	const onKey = (e: React.KeyboardEvent) => {
 		if (!engine) return;

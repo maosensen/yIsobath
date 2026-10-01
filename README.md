@@ -72,7 +72,7 @@ src/
   routes/index.tsx   # the window: the instrument, edge to edge
 src-tauri/src/
   survey/            # walk · emit (folding) · classify (types and rule tags) · system (volume, FDA, Trash guard)
-  commands/          # survey, stop, reveal, move to Trash, privacy settings, dev options
+  commands/          # survey, stop, reveal, expand a folded folder, move to Trash, privacy settings, dev options
   examples/survey.rs # command-line survey for profiling
 docs/DESIGN.md       # what was ported, what changed, what is invented, known limits
 ```

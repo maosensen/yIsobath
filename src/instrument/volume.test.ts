@@ -102,6 +102,7 @@ function nativeTree(): VolumeDraft {
 						files: 40_000,
 						dirs: 900,
 						folded: true,
+						expandable: true,
 						tag: "node-modules",
 						type: "src",
 					}),
@@ -157,12 +158,35 @@ describe("a native folder survey", () => {
 		expect(v.findSegments(["app", "node_modules"])).toBe(nm);
 	});
 
-	it("keeps folded folders real but not enterable", () => {
+	it("keeps folded folders real, entered only by expanding them", () => {
 		const nm = v.find("~/github/app/node_modules");
 		expect(v.flags[nm] & F_FOLDED).toBeTruthy();
 		expect(v.isReal(nm)).toBe(true);
 		expect(v.canEnter(nm)).toBe(false);
+		expect(v.canExpand(nm)).toBe(true);
+		expect(v.canExpand(v.find("~/github/app/bundle.bin"))).toBe(false);
 		expect(ISO_RULES[v.claim[nm]].id).toBe("node-modules");
+	});
+
+	it("expands only what Rust marked, and never on the demo volume", () => {
+		const tree = nativeTree();
+		const app = tree.children?.[0].children ?? [];
+		app[0] = { ...app[0], expandable: false };
+		const plain = volumeOf(
+			{ ...result({}), root: tree as SurveyResult["root"] },
+			"now",
+		);
+		expect(plain.canExpand(plain.find("~/github/app/node_modules"))).toBe(
+			false,
+		);
+		const demo = new Volume(nativeTree(), {
+			...v.meta,
+			source: "demo",
+			root: undefined,
+		});
+		expect(demo.canExpand(demo.findSegments(["app", "node_modules"]))).toBe(
+			false,
+		);
 	});
 
 	it("points loose files at their folder", () => {

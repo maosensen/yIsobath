@@ -29,10 +29,15 @@ export const AGE_BINS = ISO_AGE_BUCKETS + 1;
 export const F_DIR = 1;
 export const F_AGG = 2;
 export const F_SEALED = 4;
-/** 折叠成一块的目录(原生测量里太小、不值得展开的):是真路径,能显示、能移到废纸篓,但进不去。 */
+/**
+ * 折叠成一块的目录(原生测量里太小、不值得展开的):是真路径,能显示、能移到废纸篓。
+ * 自己没有孩子,要进去得先请 Rust 按需展开(`expand_folder`,见 `canExpand`)。
+ */
 export const F_FOLDED = 8;
 /** 没能列出内容的目录(权限、隐私保护)。 */
 export const F_DENIED = 16;
+/** 折叠的目录里不止一块东西,展开有看头(Rust 判断:只有零散小文件的展开了也只是一块「N files」)。 */
+export const F_EXPANDABLE = 32;
 
 const TYPE_INDEX = new Map<IsoType, number>(
 	ISO_TYPE_KEYS.map((k, i) => [k, i]),
@@ -93,6 +98,7 @@ export interface VolumeDraft {
 	tag?: string;
 	sealed?: boolean;
 	folded?: boolean;
+	expandable?: boolean;
 	denied?: boolean;
 }
 
@@ -183,6 +189,7 @@ export class Volume {
 			maxDepth = Math.max(maxDepth, depth);
 			if (d.sealed) this.flags[i] |= F_SEALED;
 			if (d.folded) this.flags[i] |= F_FOLDED;
+			if (d.expandable) this.flags[i] |= F_EXPANDABLE;
 			if (d.denied) this.flags[i] |= F_DENIED;
 			if (p >= 0 && this.flags[p] & F_SEALED) this.flags[i] |= F_SEALED;
 			if (d.children) {
@@ -494,6 +501,16 @@ export class Volume {
 
 	isFolded(i: number) {
 		return (this.flags[i] & F_FOLDED) !== 0;
+	}
+
+	/** 折叠的目录能不能按需展开:原生测量里的、展开有看头的(读不了的目录 Rust 不会标)。 */
+	canExpand(i: number) {
+		return (
+			this.isFolded(i) &&
+			(this.flags[i] & F_EXPANDABLE) !== 0 &&
+			this.bytes[i] > 0 &&
+			!!this.meta.root
+		);
 	}
 }
 

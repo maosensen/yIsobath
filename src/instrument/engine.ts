@@ -419,6 +419,34 @@ export class Engine {
 		};
 	}
 
+	/**
+	 * 点进一块折叠的目录时调用(只有原生测量有):外面去 Rust 要展开之后的测量,
+	 * 换卷(`replaceVolume`)之后再钻进去。没设就是折叠的块点不进去。
+	 */
+	onExpand: ((i: number) => void) | null = null;
+
+	/** 这一块点得进去吗:能钻的目录,或者能按需展开的折叠块。 */
+	canOpen(i: number) {
+		const v = this.volume;
+		return v.canEnter(i) || (!!this.onExpand && v.canExpand(i));
+	}
+
+	/** 点进去:能钻就钻;折叠的块先选中它(等展开时有个着落),再请外面展开。 */
+	open(i: number) {
+		const v = this.volume;
+		if (v.canEnter(i)) {
+			this.goTo(i);
+			this.select = -1;
+		} else if (this.onExpand && v.canExpand(i) && this.phase === "complete") {
+			this.select = i;
+			this.onExpand(i);
+		} else return false;
+		this.lastInteract = this.now;
+		this.emit(true);
+		this.loop();
+		return true;
+	}
+
 	/** 钻到节点 i(退出也是它)。互不包含时经过最近的公共祖先。 */
 	goTo(i: number) {
 		const v = this.volume;
@@ -703,10 +731,7 @@ export class Engine {
 			return true;
 		}
 		if (k === "enter") {
-			if (s >= 0 && v.canEnter(s)) {
-				this.goTo(s);
-				this.select = -1;
-			}
+			if (s >= 0) this.open(s);
 			return true;
 		}
 		if (s < 0) {
@@ -909,9 +934,8 @@ export class Engine {
 			this.select = -1;
 		} else if (hit.kind === "hub") {
 			this.goUp();
-		} else if (this.volume.canEnter(hit.node)) {
-			this.goTo(hit.node);
-			this.select = -1;
+		} else if (this.canOpen(hit.node)) {
+			this.open(hit.node);
 		} else {
 			this.select = this.select === hit.node ? -1 : hit.node;
 		}
@@ -1202,7 +1226,7 @@ export class Engine {
 		if (this.canvas)
 			this.canvas.style.cursor =
 				node >= 0
-					? this.volume.canEnter(node)
+					? this.canOpen(node)
 						? "zoom-in"
 						: "pointer"
 					: hub && this.to.focus !== 0
@@ -1494,8 +1518,8 @@ export class Engine {
 					title: v.isAgg(read) ? `${v.name[read]}` : v.name[read],
 					kicker: v.isAgg(read)
 						? "LOOSE FILES"
-						: v.isDir(read)
-							? v.canEnter(read)
+						: v.isDir(read) || v.isFolded(read)
+							? this.canOpen(read)
 								? "FOLDER · CLICK TO ENTER"
 								: "FOLDER"
 							: "FILE",

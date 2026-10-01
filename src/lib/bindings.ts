@@ -18,6 +18,12 @@ export const commands = {
 	/**  Show an item of the current survey in Finder (Explorer, Files). */
 	reveal: (path: string) => typedError<null, AppError>(__TAURI_INVOKE("reveal", { path })),
 	/**
+	 *  Expand a folded folder of the current survey — show what is inside it,
+	 *  from the tree the walk already holds — and return the survey as it now
+	 *  stands.
+	 */
+	expandFolder: (path: string) => typedError<SurveyResult_Serialize, AppError>(__TAURI_INVOKE("expand_folder", { path })),
+	/**
 	 *  Move an item of the current survey to the Trash, then return the survey as
 	 *  it now stands. Refuses the surveyed root, folders the system or the account
 	 *  depends on, and anything already in the Trash.
@@ -127,6 +133,8 @@ export type SurveyNode_Deserialize = {
 	agg?: boolean,
 	/**  A folder shown as one piece. */
 	folded?: boolean,
+	/**  A folded folder that shows more than one piece when expanded. */
+	expandable?: boolean,
 	dup?: string | null,
 	tag?: string | null,
 	/**  The folder could not be listed. */
@@ -151,6 +159,8 @@ export type SurveyNode_Serialize = {
 	agg?: boolean,
 	/**  A folder shown as one piece. */
 	folded?: boolean,
+	/**  A folded folder that shows more than one piece when expanded. */
+	expandable?: boolean,
 	dup?: string | null,
 	tag?: string | null,
 	/**  The folder could not be listed. */

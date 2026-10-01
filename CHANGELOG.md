@@ -20,6 +20,11 @@ All notable changes to yIsobath are documented here. The format is based on
   lookbook draws real surveys. It has one terrace per folder level, an arc per
   byte, and lenses for type, age and reclaimable space. Folders too small to
   open are folded into one piece, so a whole volume stays at 60 fps.
+- **Go into folded folders.** Click a folded piece, or select it and press
+  Enter, and it opens at its own scale, as if that folder had been surveyed
+  alone. It comes from the tree the survey already holds, so nothing is walked
+  again, and it stays open after a move to the Trash. Folders that would only
+  show their loose files stay folded.
 - **Move to Trash.** Use the focus panel, a right-click on the relief, or
   ⌘⌫. Every move asks first, showing the path, the size and the rule that
   flagged it. The survey's root, folders the system or your account depends

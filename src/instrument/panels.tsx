@@ -249,7 +249,7 @@ export function FocusPanel({
 								onMouseLeave={() => engine.setHoverNode(-1)}
 								onFocus={() => engine.setSelect(c)}
 								onClick={() =>
-									v.canEnter(c) ? engine.goTo(c) : engine.setSelect(c)
+									engine.canOpen(c) ? engine.open(c) : engine.setSelect(c)
 								}
 							>
 								<span className="iso-largest-rank">

@@ -62,6 +62,11 @@ export async function revealInFinder(path: string): Promise<void> {
 	unwrap(await commands.reveal(path));
 }
 
+/** Expand a folded folder; resolves with the survey as it now stands. */
+export async function expandFolder(path: string): Promise<SurveyResult> {
+	return unwrap(await commands.expandFolder(path));
+}
+
 /** Move to the Trash; resolves with the survey as it now stands. */
 export async function moveToTrash(path: string): Promise<SurveyResult> {
 	return unwrap(await commands.moveToTrash(path));

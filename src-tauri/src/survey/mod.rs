@@ -8,7 +8,8 @@
 //!   which paths must never be moved to the Trash.
 //!
 //! The full tree stays in [`Survey`] after the walk so that moving an item to
-//! the Trash can update the picture without walking the disk again.
+//! the Trash can update the picture without walking the disk again, and a
+//! folded folder can be expanded without walking it again.
 
 pub mod classify;
 pub mod emit;
@@ -21,7 +22,7 @@ use std::time::{Duration, Instant};
 
 use serde::{Deserialize, Serialize};
 
-use emit::{Emitter, NODE_BUDGET, SurveyNode};
+use emit::{Emitter, Expanded, NODE_BUDGET, SurveyNode};
 use walk::{Dir, Progress, STOP_CANCEL, WalkStats, Walker};
 
 /// What to survey.
@@ -109,6 +110,8 @@ pub struct Survey {
     pub took: Duration,
     pub partial: bool,
     pub threshold: u64,
+    /// Folded folders the user went into.
+    pub expanded: Expanded,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -247,6 +250,7 @@ pub fn run(
         took: started.elapsed(),
         partial: mode != 0,
         threshold,
+        expanded: Expanded::default(),
     })
 }
 
@@ -257,6 +261,7 @@ impl Survey {
         let root = Emitter {
             threshold: self.threshold,
             dups: &dups,
+            expanded: Some(&self.expanded),
         }
         .open(&self.tree);
         SurveyResult {
@@ -271,7 +276,7 @@ impl Survey {
                 hardlinks: self.walk.hardlinks as f64,
                 took_ms: self.took.as_secs_f64() * 1000.0,
                 partial: self.partial,
-                nodes: emit::count(&self.tree, self.threshold) as f64,
+                nodes: emit::count(&self.tree, self.threshold, Some(&self.expanded)) as f64,
                 threshold: self.threshold as f64,
                 full_disk_access: system::full_disk_access(),
             },
@@ -288,6 +293,21 @@ impl Survey {
         (!parts.is_empty()).then_some(parts)
     }
 
+    /// Expand the folder at `path`: from now on it opens at a threshold of its
+    /// own, as if it had been surveyed alone (`emit::expand_threshold`).
+    /// False when `path` is not a folder of this survey.
+    pub fn expand(&mut self, path: &Path) -> bool {
+        let Some(parts) = self.segments(path) else {
+            return false;
+        };
+        let Some(dir) = dir_at(&self.tree, &parts) else {
+            return false;
+        };
+        let t = emit::expand_threshold(dir);
+        self.expanded.insert(&parts, t);
+        true
+    }
+
     /// Take the item at `path` out of the tree (after it went to the Trash) and,
     /// when the user's Trash is inside this survey, put it there — the space is
     /// only given back when the Trash is emptied.
@@ -298,6 +318,7 @@ impl Survey {
         let Some(item) = take(&mut self.tree, &parts) else {
             return false;
         };
+        self.expanded.remove(&parts);
         let trash = system::home_dir().map(|h| h.join(".Trash"));
         let inside = trash.as_ref().and_then(|t| {
             system::firmlinked(t)
@@ -340,6 +361,15 @@ fn take(root: &mut Dir, parts: &[String]) -> Option<Taken> {
     }
     let i = d.files.iter().position(|f| &f.name == last)?;
     Some(Taken::File(d.files.swap_remove(i)))
+}
+
+/// The folder at `parts`, if the walk listed one there.
+fn dir_at<'a>(root: &'a Dir, parts: &[String]) -> Option<&'a Dir> {
+    let mut d = root;
+    for name in parts {
+        d = d.dirs.iter().find(|c| &c.name == name)?;
+    }
+    Some(d)
 }
 
 /// The folder at `parts`, created (empty) where the walk did not list it.
@@ -388,6 +418,54 @@ mod tests {
         assert!(survey.moved_to_trash(&path.join("app/big.bin")));
         assert!(survey.tree.bytes < before);
         assert!(!survey.moved_to_trash(&path.join("app/big.bin")));
+    }
+
+    #[test]
+    fn expanding_a_folded_folder_shows_what_is_inside() {
+        let tmp = tempfile::tempdir().unwrap();
+        let r = tmp.path();
+        // One big file sets a threshold that folds `small`.
+        fs::write(r.join("big.bin"), vec![1u8; 120_000_000]).unwrap();
+        fs::create_dir_all(r.join("small/inner")).unwrap();
+        fs::write(r.join("small/a.bin"), vec![2u8; 3_000_000]).unwrap();
+        fs::write(r.join("small/b.bin"), vec![3u8; 2_000_000]).unwrap();
+        fs::write(r.join("small/inner/c.bin"), vec![4u8; 2_000_000]).unwrap();
+        let (path, meta) = resolve(&SurveyTarget::Folder {
+            path: r.to_string_lossy().into_owned(),
+        })
+        .unwrap();
+        let stop = AtomicU8::new(0);
+        let mut survey = run(&path, meta, &stop, |_| {}).unwrap();
+        // Fold it the way a big volume would.
+        survey.threshold = 64_000_000;
+        let find = |n: &SurveyNode, name: &str| {
+            n.children
+                .as_ref()
+                .and_then(|c| c.iter().find(|c| c.name == name).cloned())
+        };
+        let before = survey.result();
+        let folded = find(&before.root, "small").unwrap();
+        assert!(folded.folded && folded.expandable);
+
+        assert!(survey.expand(&path.join("small")));
+        let after = survey.result();
+        let small = find(&after.root, "small").unwrap();
+        assert!(!small.folded);
+        assert!(find(&small, "a.bin").is_some());
+        assert!(find(&small, "inner").unwrap().children.is_some());
+        assert!(after.stats.nodes > before.stats.nodes);
+        assert_eq!(after.stats.bytes, before.stats.bytes);
+
+        // Still open after something inside it goes to the Trash; forgotten
+        // when the folder itself goes.
+        assert!(survey.moved_to_trash(&path.join("small/b.bin")));
+        assert!(!find(&survey.result().root, "small").unwrap().folded);
+        assert!(survey.moved_to_trash(&path.join("small")));
+        assert!(survey.expanded.kids.is_empty());
+
+        assert!(!survey.expand(&path.join("small")));
+        assert!(!survey.expand(&path.join("big.bin")));
+        assert!(!survey.expand(Path::new("/elsewhere")));
     }
 
     #[test]

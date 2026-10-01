@@ -57,13 +57,18 @@ features:
     completedAt: 2026-10-01
     note: |
       完整的树留在 Rust 内存里,发给界面的是折叠后的树:不到阈值 T 的目录折成一块(仍是真路径,能显示、能移到
-      废纸篓,进不去),带规则记号或装着足够可回收内容的小目录照样展开;T 从 max(1 MB, 总量 / 10⁶) 起倍增到不超过
+      废纸篓,要进去就按需展开,见 lazy-expand),带规则记号或装着足够可回收内容的小目录照样展开;T 从 max(1 MB, 总量 / 10⁶) 起倍增到不超过
       6 万个节点。字节守恒有单测。~/github 折成 3.8 万个节点、4.2 MB JSON。
   - id: lazy-expand
     title: 钻进折叠的目录时按需展开
     area: 测量
-    status: todo
-    note: 现在折叠的目录进不去;完整的树已经在 Rust 那边,缺的是「拉一棵子树」的命令和界面上的局部替换。
+    status: done
+    completedAt: 2026-10-01
+    note: |
+      点进折叠的块(或选中按回车),expand_folder 从 Rust 内存里的完整树把它按自己的尺度重折(像单独测了它,
+      2 万个节点的预算),整份测量重发、replaceVolume 换卷后钻进去,不重新走盘。展开过的目录记在 Survey.expanded
+      (名字树),移到废纸篓之后仍展开;只给展开后不止一块的目录(expandable)。没做「只发子树、局部替换」:
+      ~/github 上重新折叠 15 ms、4.4 MB JSON,大卷上界面那头的耗时待实测。
   - id: survey-snapshots
     title: 测量快照与两次对比(上次以来哪里涨了)
     area: 测量

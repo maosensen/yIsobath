@@ -51,6 +51,7 @@ export const en = {
 		trash: "Move to Trash…",
 		copied: "Path copied",
 		loose: "Loose files: actions apply to their folder",
+		expandFailed: "Could not open this folder",
 		demo: "The demo volume has no files of its own",
 	},
 	trash: {

@@ -4,8 +4,8 @@
 //! - Fallible commands return [`AppResult<T>`](crate::error::AppResult) so the
 //!   frontend receives a structured, code-tagged error.
 //! - Long-lived resources are injected via `tauri::State`, never rebuilt here.
-//! - Blocking work (walking a disk, moving to the Trash) runs on a blocking
-//!   task; async commands keep it off the main thread.
+//! - Blocking work (walking a disk, folding it, moving to the Trash) runs on
+//!   a blocking task; async commands keep it off the main thread.
 //! - Register every command in `specta_builder()` in `lib.rs`.
 
 use std::path::{Path, PathBuf};
@@ -137,6 +137,38 @@ pub fn reveal(
         log::warn!("reveal failed: {e}");
         AppError::Io(e.to_string())
     })
+}
+
+/// Expand a folded folder of the current survey — show what is inside it,
+/// from the tree the walk already holds — and return the survey as it now
+/// stands.
+#[tauri::command]
+#[specta::specta]
+pub async fn expand_folder(
+    path: String,
+    state: tauri::State<'_, AppState>,
+) -> AppResult<SurveyResult> {
+    let path = PathBuf::from(path);
+    within_survey(&state, &path)?;
+    let slot = state.survey.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let mut slot = slot.lock().map_err(|_| AppError::Internal)?;
+        let Some(s) = slot.as_mut() else {
+            return Err(AppError::Internal);
+        };
+        if !s.expand(&path) {
+            return Err(AppError::NotFound(format!(
+                "{} is not a folder of this survey",
+                path.display()
+            )));
+        }
+        Ok(s.result())
+    })
+    .await
+    .map_err(|e| {
+        log::error!("expand task failed: {e}");
+        AppError::Internal
+    })?
 }
 
 /// Move an item of the current survey to the Trash, then return the survey as

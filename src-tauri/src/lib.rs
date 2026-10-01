@@ -16,6 +16,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
         commands::survey,
         commands::survey_stop,
         commands::reveal,
+        commands::expand_folder,
         commands::move_to_trash,
         commands::open_privacy_settings,
         commands::dev_options

@@ -17,6 +17,10 @@
 //! `T` starts at `max(BIG, total / 1,000,000)` and grows until the tree fits the
 //! node budget, so a small folder is shown file by file and a 2 TB volume stays
 //! drawable. Bytes are conserved: the leaves always add up to the root.
+//!
+//! A folded folder the user goes into is **expanded** ([`Expanded`]): it opens
+//! at a threshold of its own, as if it had been surveyed alone, and the folders
+//! on the way to it stay open whatever their size.
 
 use std::collections::HashMap;
 
@@ -27,6 +31,48 @@ use super::walk::Dir;
 
 /// How many nodes the instrument is handed at most.
 pub const NODE_BUDGET: usize = 60_000;
+
+/// How many nodes one expanded folder adds at most.
+pub const EXPAND_BUDGET: usize = 20_000;
+
+/// Folders expanded on request, as a tree of names from the survey's root.
+#[derive(Debug, Default)]
+pub struct Expanded {
+    /// The threshold this folder opens at; `None` for a folder on the way to
+    /// an expanded one, which opens at its parent's.
+    pub threshold: Option<u64>,
+    pub kids: HashMap<String, Expanded>,
+}
+
+impl Expanded {
+    /// Remember `parts` as expanded at `threshold`.
+    pub fn insert(&mut self, parts: &[String], threshold: u64) {
+        let mut node = self;
+        for name in parts {
+            node = node.kids.entry(name.clone()).or_default();
+        }
+        node.threshold = Some(threshold);
+    }
+
+    /// Forget `parts` and everything expanded inside it.
+    pub fn remove(&mut self, parts: &[String]) {
+        let Some((last, path)) = parts.split_last() else {
+            return;
+        };
+        let mut node = self;
+        for name in path {
+            match node.kids.get_mut(name) {
+                Some(n) => node = n,
+                None => return,
+            }
+        }
+        node.kids.remove(last);
+    }
+
+    fn kid<'a>(this: Option<&'a Self>, name: &str) -> Option<&'a Self> {
+        this.and_then(|e| e.kids.get(name))
+    }
+}
 
 /// A node in the shape `Volume` reads (`src/instrument/volume.ts`).
 #[derive(Debug, Clone, Serialize, specta::Type)]
@@ -54,6 +100,10 @@ pub struct SurveyNode {
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     #[specta(optional)]
     pub folded: bool,
+    /// A folded folder that shows more than one piece when expanded.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    #[specta(optional)]
+    pub expandable: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[specta(optional)]
     pub dup: Option<String>,
@@ -102,13 +152,18 @@ fn fate(c: &Dir, t: u64) -> Fate {
     }
 }
 
-/// How many nodes `emit` would produce at threshold `t`.
-pub fn count(d: &Dir, t: u64) -> usize {
+/// How many nodes `emit` would produce at threshold `t`, with `expanded`
+/// folders open.
+pub fn count(d: &Dir, t: u64, expanded: Option<&Expanded>) -> usize {
     let mut n = 1;
     let mut loose = d.loose.files > 0;
     for c in &d.dirs {
+        if let Some(e) = Expanded::kid(expanded, &c.name) {
+            n += count(c, e.threshold.unwrap_or(t), Some(e));
+            continue;
+        }
         match fate(c, t) {
-            Fate::Open => n += count(c, t),
+            Fate::Open => n += count(c, t, None),
             Fate::Fold => n += 1,
             Fate::Loose => loose = true,
         }
@@ -127,10 +182,23 @@ pub fn count(d: &Dir, t: u64) -> usize {
 /// The smallest threshold (doubling from the start value) that fits the budget.
 pub fn threshold(root: &Dir, budget: usize) -> u64 {
     let mut t = BIG.max(root.bytes / 1_000_000);
-    while count(root, t) > budget && t < u64::MAX / 2 {
+    while count(root, t, None) > budget && t < u64::MAX / 2 {
         t = t.saturating_mul(2);
     }
     t
+}
+
+/// The threshold a folder is expanded at: as if it had been surveyed alone,
+/// within `EXPAND_BUDGET` nodes.
+pub fn expand_threshold(d: &Dir) -> u64 {
+    threshold(d, EXPAND_BUDGET)
+}
+
+/// Whether expanding `d` shows more than one piece. A folder of small files
+/// only would open onto a single "N files" piece — the walk keeps no file
+/// under `BIG` on its own — so it is not offered.
+pub fn expandable(d: &Dir) -> bool {
+    !d.denied && count(d, expand_threshold(d), None) > 2
 }
 
 /// Names + sizes seen at least twice among files of `DUP_MIN` and more.
@@ -154,11 +222,15 @@ pub fn duplicate_keys(root: &Dir) -> HashMap<(String, u64), u32> {
 pub struct Emitter<'a> {
     pub threshold: u64,
     pub dups: &'a HashMap<(String, u64), u32>,
+    pub expanded: Option<&'a Expanded>,
 }
 
 impl Emitter<'_> {
     pub fn open(&self, d: &Dir) -> SurveyNode {
-        let t = self.threshold;
+        self.open_at(d, self.threshold, self.expanded)
+    }
+
+    fn open_at(&self, d: &Dir, t: u64, expanded: Option<&Expanded>) -> SurveyNode {
         let big = t.max(BIG);
         let mut children = Vec::new();
         // The loose piece: small files plus folders too small to fold.
@@ -169,8 +241,12 @@ impl Emitter<'_> {
         let mut loose_weight = d.loose.age_weight;
 
         for c in &d.dirs {
+            if let Some(e) = Expanded::kid(expanded, &c.name) {
+                children.push(self.open_at(c, e.threshold.unwrap_or(t), Some(e)));
+                continue;
+            }
             match fate(c, t) {
-                Fate::Open => children.push(self.open(c)),
+                Fate::Open => children.push(self.open_at(c, t, None)),
                 Fate::Fold => children.push(self.fold(c)),
                 Fate::Loose => {
                     loose_files += c.file_count;
@@ -198,6 +274,7 @@ impl Emitter<'_> {
                     kind: f.kind,
                     agg: false,
                     folded: false,
+                    expandable: false,
                     dup,
                     tag: f.tag.map(|t| t.as_str().to_string()),
                     denied: false,
@@ -237,6 +314,7 @@ impl Emitter<'_> {
                 kind: dominant(&loose_kinds),
                 agg: true,
                 folded: false,
+                expandable: false,
                 dup: None,
                 tag: None,
                 denied: false,
@@ -252,6 +330,7 @@ impl Emitter<'_> {
             kind: FileKind::Sys,
             agg: false,
             folded: false,
+            expandable: false,
             dup: None,
             tag: d.tag.map(|t| t.as_str().to_string()),
             denied: d.denied,
@@ -271,6 +350,7 @@ impl Emitter<'_> {
             kind: dominant(&kinds),
             agg: false,
             folded: true,
+            expandable: expandable(d),
             dup: None,
             tag: d.tag.map(|t| t.as_str().to_string()),
             denied: d.denied,
@@ -359,10 +439,11 @@ mod tests {
             let e = Emitter {
                 threshold: t,
                 dups: &dups,
+                expanded: None,
             };
             let out = e.open(&root);
             assert_eq!(sum_leaves(&out) as u64, root.bytes, "threshold {t}");
-            assert_eq!(count_nodes(&out), count(&root, t), "threshold {t}");
+            assert_eq!(count_nodes(&out), count(&root, t, None), "threshold {t}");
         }
     }
 
@@ -370,7 +451,7 @@ mod tests {
     fn the_budget_raises_the_threshold() {
         let root = wide(2_000);
         let t = threshold(&root, 1_000);
-        assert!(count(&root, t) <= 1_000);
+        assert!(count(&root, t, None) <= 1_000);
         assert!(t > BIG);
     }
 
@@ -381,6 +462,7 @@ mod tests {
         let out = Emitter {
             threshold: BIG * 1_000,
             dups: &dups,
+            expanded: None,
         }
         .open(&root);
         // Everything is far below T: the projects are loose, but a project's
@@ -391,6 +473,7 @@ mod tests {
         let open = Emitter {
             threshold: BIG,
             dups: &dups,
+            expanded: None,
         }
         .open(&root);
         for p in open.children.as_ref().unwrap() {
@@ -419,6 +502,7 @@ mod tests {
         let out = Emitter {
             threshold: t,
             dups: &dups,
+            expanded: None,
         }
         .open(&root);
         let p = out
@@ -433,7 +517,7 @@ mod tests {
             kids.iter()
                 .any(|c| c.tag.as_deref() == Some("node-modules"))
         );
-        assert_eq!(count_nodes(&out), count(&root, t));
+        assert_eq!(count_nodes(&out), count(&root, t, None));
         assert_eq!(sum_leaves(&out) as u64, root.bytes);
     }
 
@@ -458,5 +542,106 @@ mod tests {
         assert_eq!(group(7), "7");
         assert_eq!(group(1_234), "1,234");
         assert_eq!(group(1_234_567), "1,234,567");
+    }
+
+    /// root/{big.bin, small/{a.bin, b.bin, inner/c.bin}}: `small` folds at a
+    /// threshold well above its size.
+    fn with_small_folder() -> Dir {
+        let mut root = Dir::named("root".into());
+        root.files.push(file("big.bin", 400 * BIG));
+        let mut small = Dir::named("small".into());
+        small.files.push(file("a.bin", 3 * BIG));
+        small.files.push(file("b.bin", 2 * BIG));
+        let mut inner = Dir::named("inner".into());
+        inner.files.push(file("c.bin", 2 * BIG));
+        inner.loose = loose(30, 40_000);
+        small.dirs.push(inner);
+        small.loose = loose(4, 9_000);
+        root.dirs.push(small);
+        root.total();
+        root
+    }
+
+    fn child<'a>(n: &'a SurveyNode, name: &str) -> &'a SurveyNode {
+        n.children
+            .as_ref()
+            .and_then(|c| c.iter().find(|c| c.name == name))
+            .unwrap_or_else(|| panic!("no {name} under {}", n.name))
+    }
+
+    #[test]
+    fn an_expanded_folder_opens_at_its_own_threshold() {
+        let root = with_small_folder();
+        let t = BIG * 64;
+        let dups = HashMap::new();
+        let folded = Emitter {
+            threshold: t,
+            dups: &dups,
+            expanded: None,
+        }
+        .open(&root);
+        assert!(child(&folded, "small").folded);
+        assert!(child(&folded, "small").expandable);
+
+        let mut expanded = Expanded::default();
+        let small = &root.dirs[0];
+        expanded.insert(&["small".into()], threshold(small, EXPAND_BUDGET));
+        let out = Emitter {
+            threshold: t,
+            dups: &dups,
+            expanded: Some(&expanded),
+        }
+        .open(&root);
+        let small = child(&out, "small");
+        assert!(!small.folded);
+        // At its own threshold (BIG) the files of a megabyte and more show.
+        child(small, "a.bin");
+        child(small, "b.bin");
+        assert!(child(small, "inner").children.is_some());
+        assert_eq!(sum_leaves(&out) as u64, root.bytes);
+        assert_eq!(count_nodes(&out), count(&root, t, Some(&expanded)));
+    }
+
+    #[test]
+    fn only_folders_that_show_more_than_one_piece_expand() {
+        // Small files only: expanding would show one "N files" piece.
+        let mut photos = Dir::named("photos".into());
+        photos.loose = loose(4, 800_000);
+        photos.total();
+        assert!(!expandable(&photos));
+        // A file of its own next to the small ones is worth going into.
+        photos.files.push(file("raw.dng", 2 * BIG));
+        photos.total();
+        assert!(expandable(&photos));
+        // Nothing to show in a folder that could not be listed.
+        let mut denied = Dir::named("private".into());
+        denied.denied = true;
+        denied.total();
+        assert!(!expandable(&denied));
+    }
+
+    #[test]
+    fn folders_on_the_way_to_an_expanded_one_stay_open() {
+        let root = with_small_folder();
+        let t = BIG * 64;
+        let dups = HashMap::new();
+        // Expanding small/inner keeps `small` open at the outer threshold, where
+        // it would otherwise fold, so `inner` can still be reached.
+        let mut expanded = Expanded::default();
+        expanded.insert(&["small".into(), "inner".into()], BIG);
+        let out = Emitter {
+            threshold: t,
+            dups: &dups,
+            expanded: Some(&expanded),
+        }
+        .open(&root);
+        let small = child(&out, "small");
+        assert!(!small.folded);
+        child(child(small, "inner"), "c.bin");
+        assert_eq!(sum_leaves(&out) as u64, root.bytes);
+        assert_eq!(count_nodes(&out), count(&root, t, Some(&expanded)));
+
+        expanded.remove(&["small".into()]);
+        assert!(expanded.kids.is_empty());
     }
 }

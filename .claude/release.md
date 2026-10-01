@@ -33,7 +33,7 @@
 
 1. **GitHub 仓库**:✅ 已建好并 push(2026-10-01),**公开**。必须保持公开:更新 endpoint 是 `releases/latest/download/latest.json`,私有仓库对未认证请求一律 404,装出去的 app 就收不到更新。
 2. **自更新**:✅ 密钥对已生成(2026-10-01,私钥 `~/.tauri/yisobath.key`,带密码),公钥已填进 `tauri.conf.json` 的 `plugins.updater.pubkey`,`bundle.createUpdaterArtifacts` 已是 `true`。
-   **还差**:repo secrets 配 `TAURI_SIGNING_PRIVATE_KEY` / `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`(用户本人操作)。发版前用 `gh secret list --repo maosensen/yIsobath` 确认两个都在,缺了 release.yml 会在打包签名那步失败。私钥和密码永不入库;丢了任一,已发出去的版本永远收不到更新。
+   repo secrets `TAURI_SIGNING_PRIVATE_KEY` / `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` ✅ 已配(2026-10-01,用户本人操作)。发版前用 `gh secret list --repo maosensen/yIsobath` 确认两个都在,缺了 release.yml 会在打包签名那步失败。私钥和密码永不入库;丢了任一,已发出去的版本永远收不到更新。
    本地 `pnpm tauri build` 从此也要先 export 这两个变量,否则同样失败(`pnpm tauri dev` 不受影响)。
 3. **Apple 签名 + 公证**:照 yAssets 的 release.yml(第 112–123 行)把 `APPLE_CERTIFICATE` / `APPLE_CERTIFICATE_PASSWORD` / `APPLE_SIGNING_IDENTITY` / `APPLE_ID` / `APPLE_PASSWORD` / `APPLE_TEAM_ID` 的注释打开,并在 repo secrets 里配上(与 yAssets 同一个 Developer ID)。
    **这一条对 yIsobath 比对别的 app 更重要**:macOS 的「完全磁盘访问权限」按签名身份记。Developer ID 签名不变,更新后权限还在;未签名 / ad-hoc 签名的包每次更新都要重新去系统设置里授权。

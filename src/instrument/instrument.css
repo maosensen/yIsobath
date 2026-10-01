@@ -1,0 +1,1842 @@
+/*
+ * Isobath —— 作用域调色板与版式。
+ *
+ * 仪器是满屏的一整块:WebGL 的浮雕铺底,面板是压在上面的暗玻璃。颜色只有三类:
+ * 冷白的墨(读数与线)、冰蓝(交互与焦点)、琥珀(可回收)。风险三档另有三色,
+ * 只出现在「可回收」面板里。
+ */
+
+.isobath {
+	--iso-bg: #04070a;
+	--iso-ink: #e8f1fa;
+	--iso-ink-2: rgba(222, 234, 246, 0.8);
+	--iso-dim: rgba(200, 216, 232, 0.58);
+	--iso-faint: rgba(190, 210, 230, 0.34);
+	--iso-ghost: rgba(190, 210, 230, 0.16);
+	--iso-line: rgba(168, 236, 255, 0.11);
+	--iso-line-2: rgba(168, 236, 255, 0.2);
+	--iso-ice: #a8ecff;
+	--iso-ice-soft: rgba(168, 236, 255, 0.14);
+	--iso-amber: #ffb23f;
+	--iso-amber-soft: rgba(255, 178, 63, 0.14);
+	--iso-risk-regenerates: #6fe3c0;
+	--iso-risk-review: #ffb23f;
+	--iso-risk-final: #ff6f61;
+	--iso-panel: rgba(6, 11, 16, 0.64);
+	--iso-left-w: 300px;
+	--iso-right-w: 340px;
+	--iso-gutter: 28px;
+	/* 字体来自 @fontsource-variable(src/routes/index.tsx 里引入);引擎也从这两个变量读字体名 */
+	--font-iso-display: "Saira Variable";
+	--font-iso-mono: "Azeret Mono Variable";
+	--iso-display: var(--font-iso-display), ui-sans-serif, system-ui, sans-serif;
+	--iso-mono: var(--font-iso-mono), ui-monospace, monospace;
+	background: var(--iso-bg);
+	color: var(--iso-ink);
+	font-family: var(--iso-display);
+	min-height: 100svh;
+}
+
+.isobath * {
+	box-sizing: border-box;
+}
+
+.isobath button {
+	font: inherit;
+	color: inherit;
+	background: none;
+	border: 0;
+	padding: 0;
+	cursor: pointer;
+}
+
+.isobath button:disabled {
+	cursor: default;
+}
+
+.isobath :focus-visible {
+	outline: 1px solid var(--iso-ice);
+	outline-offset: 2px;
+}
+
+/* ---------- 舞台 ---------- */
+
+.isobath .iso-stage {
+	position: relative;
+	height: 100svh;
+	min-height: 640px;
+	overflow: hidden;
+	isolation: isolate;
+}
+
+.isobath .iso-viewport {
+	position: absolute;
+	inset: 0;
+	z-index: 0;
+	outline: none;
+}
+
+.isobath .iso-viewport:focus-visible {
+	outline: none;
+	box-shadow: inset 0 0 0 1px rgba(168, 236, 255, 0.35);
+}
+
+.isobath .iso-gl,
+.isobath .iso-layer {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	display: block;
+}
+
+.isobath .iso-gl {
+	cursor: grab;
+	touch-action: pan-y;
+}
+
+.isobath .iso-gl:active {
+	cursor: grabbing;
+}
+
+.isobath .iso-layer {
+	pointer-events: none;
+}
+
+.isobath .iso-fail {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	font: 400 12px / 1.6 var(--iso-mono);
+	color: var(--iso-dim);
+	text-align: center;
+	max-width: 320px;
+}
+
+.isobath .iso-sr {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
+
+/* ---------- 顶栏 ---------- */
+
+.isobath .iso-top {
+	position: absolute;
+	z-index: 3;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 60px;
+	padding: 0 var(--iso-gutter);
+	display: flex;
+	align-items: center;
+	gap: 22px;
+	border-bottom: 1px solid var(--iso-line);
+	background: linear-gradient(
+		180deg,
+		rgba(4, 7, 10, 0.9),
+		rgba(4, 7, 10, 0.55)
+	);
+	backdrop-filter: blur(10px);
+}
+
+.isobath .iso-brand {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex: none;
+}
+
+.isobath .iso-mark {
+	width: 22px;
+	height: 22px;
+	fill: none;
+	stroke: var(--iso-ice);
+	stroke-width: 1.3;
+	stroke-linecap: round;
+}
+
+.isobath .iso-mark circle {
+	fill: var(--iso-ice);
+	stroke: none;
+}
+
+.isobath .iso-word {
+	font: 600 13px / 1 var(--iso-display);
+	font-variation-settings: "wdth" 112;
+	letter-spacing: 0.34em;
+	text-transform: uppercase;
+}
+
+.isobath .iso-tag {
+	font: 400 9.5px / 1 var(--iso-mono);
+	letter-spacing: 0.18em;
+	text-transform: uppercase;
+	color: var(--iso-faint);
+	padding-left: 12px;
+	border-left: 1px solid var(--iso-line-2);
+}
+
+.isobath .iso-volume {
+	display: flex;
+	align-items: center;
+	gap: 9px;
+	height: 30px;
+	padding: 0 12px;
+	border: 1px solid var(--iso-line);
+	background: rgba(168, 236, 255, 0.03);
+	flex: none;
+}
+
+.isobath .iso-volume svg {
+	width: 15px;
+	height: 15px;
+	fill: none;
+	stroke: var(--iso-dim);
+	stroke-width: 1.1;
+}
+
+.isobath .iso-volume-name {
+	max-width: 300px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font: 500 12px / 1 var(--iso-display);
+	letter-spacing: 0.04em;
+}
+
+.isobath .iso-volume-meta {
+	font: 400 10px / 1 var(--iso-mono);
+	color: var(--iso-faint);
+}
+
+.isobath .iso-source {
+	display: flex;
+	gap: 8px;
+	flex: none;
+}
+
+.isobath .iso-btn-quiet {
+	color: var(--iso-dim);
+	border-color: var(--iso-line);
+}
+
+.isobath .iso-btn-quiet:hover:not(:disabled) {
+	color: var(--iso-ice);
+}
+
+.isobath .iso-status {
+	flex: 1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 12px;
+	min-width: 0;
+}
+
+.isobath .iso-dot {
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background: var(--iso-ice);
+	box-shadow: 0 0 10px var(--iso-ice);
+	flex: none;
+}
+
+.isobath .iso-status[data-phase="survey"] .iso-dot,
+.isobath .iso-status[data-phase="boot"] .iso-dot {
+	animation: iso-blink 0.9s steps(2, jump-none) infinite;
+}
+
+.isobath .iso-status[data-phase="complete"] .iso-dot {
+	background: var(--iso-risk-regenerates);
+	box-shadow: 0 0 10px rgba(111, 227, 192, 0.7);
+}
+
+@keyframes iso-blink {
+	50% {
+		opacity: 0.25;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.isobath .iso-status .iso-dot {
+		animation: none;
+	}
+}
+
+.isobath .iso-status-label {
+	font: 500 10.5px / 1 var(--iso-mono);
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
+	white-space: nowrap;
+}
+
+.isobath .iso-progress {
+	position: relative;
+	width: 140px;
+	height: 2px;
+	background: var(--iso-ghost);
+	flex: none;
+}
+
+.isobath .iso-progress span {
+	position: absolute;
+	inset: 0 auto 0 0;
+	background: var(--iso-ice);
+	box-shadow: 0 0 8px var(--iso-ice);
+}
+
+.isobath .iso-status-read {
+	font: 400 10.5px / 1 var(--iso-mono);
+	color: var(--iso-dim);
+	white-space: nowrap;
+	font-variant-numeric: tabular-nums;
+}
+
+.isobath .iso-btn {
+	height: 26px;
+	padding: 0 12px;
+	border: 1px solid var(--iso-line-2);
+	font: 500 9.5px / 1 var(--iso-mono);
+	letter-spacing: 0.16em;
+	text-transform: uppercase;
+	color: var(--iso-ice);
+	transition:
+		background 0.2s,
+		border-color 0.2s;
+}
+
+.isobath .iso-btn:hover:not(:disabled) {
+	background: var(--iso-ice-soft);
+	border-color: var(--iso-ice);
+}
+
+/* ---------- 工具条(读法 / 视角 / 缩放)与图例 ---------- */
+
+.isobath .iso-tools {
+	position: absolute;
+	z-index: 3;
+	top: 74px;
+	left: calc(var(--iso-gutter) + var(--iso-left-w) + 24px);
+	right: calc(var(--iso-gutter) + var(--iso-right-w) + 24px);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 10px;
+	pointer-events: none;
+}
+
+.isobath .iso-tools-row {
+	display: flex;
+	gap: 10px;
+	flex-wrap: wrap;
+	justify-content: center;
+	pointer-events: auto;
+}
+
+.isobath .iso-seg,
+.isobath .iso-zoom {
+	display: flex;
+	align-items: stretch;
+	height: 28px;
+	margin: 0;
+	padding: 0;
+	border: 1px solid var(--iso-line);
+	background: rgba(6, 11, 16, 0.7);
+	backdrop-filter: blur(10px);
+	min-inline-size: 0;
+}
+
+.isobath .iso-seg-label {
+	display: flex;
+	align-items: center;
+	height: 100%;
+	padding: 0 10px;
+	font: 400 9px / 1 var(--iso-mono);
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
+	color: var(--iso-faint);
+	border-right: 1px solid var(--iso-line);
+}
+
+.isobath .iso-seg label {
+	position: relative;
+	display: flex;
+	align-items: center;
+	padding: 0 11px;
+	font: 500 10px / 1 var(--iso-mono);
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--iso-dim);
+	cursor: pointer;
+	transition:
+		color 0.2s,
+		background 0.2s;
+}
+
+.isobath .iso-seg input {
+	position: absolute;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.isobath .iso-seg label:has(input:focus-visible) {
+	outline: 1px solid var(--iso-ice);
+	outline-offset: -2px;
+}
+
+.isobath .iso-seg[data-disabled="true"] label {
+	cursor: default;
+}
+
+.isobath .iso-zoom button {
+	position: relative;
+	min-width: 28px;
+	padding: 0 8px;
+	font: 500 13px / 1 var(--iso-mono);
+	color: var(--iso-dim);
+	transition:
+		color 0.2s,
+		background 0.2s;
+}
+
+.isobath .iso-zoom button + button {
+	border-left: 1px solid var(--iso-line);
+}
+
+.isobath .iso-seg:not([data-disabled="true"]) label:hover,
+.isobath .iso-zoom button:hover {
+	color: var(--iso-ink);
+	background: rgba(168, 236, 255, 0.05);
+}
+
+.isobath .iso-seg label[data-checked="true"] {
+	color: var(--iso-ice);
+	background: var(--iso-ice-soft);
+}
+
+.isobath .iso-seg label[data-checked="true"]::after {
+	content: "";
+	position: absolute;
+	left: 8px;
+	right: 8px;
+	bottom: -1px;
+	height: 1px;
+	background: var(--iso-ice);
+	box-shadow: 0 0 6px var(--iso-ice);
+}
+
+.isobath .iso-legend {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	font: 400 9.5px / 1 var(--iso-mono);
+	letter-spacing: 0.08em;
+	color: var(--iso-dim);
+	flex-wrap: wrap;
+	justify-content: center;
+}
+
+.isobath .iso-legend li {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+}
+
+.isobath .iso-legend i {
+	display: block;
+	width: 9px;
+	height: 9px;
+}
+
+.isobath .iso-legend-kinds i {
+	width: 14px;
+	height: 9px;
+	border: 1px solid rgba(214, 236, 255, 0.8);
+}
+
+.isobath .iso-legend-kinds i[data-kind="file"] {
+	background: rgba(214, 236, 255, 0.34);
+}
+
+.isobath .iso-legend-kinds i[data-kind="loose"] {
+	background:
+		radial-gradient(circle, rgba(214, 236, 255, 0.9) 0.8px, transparent 1.2px) 0
+		0 / 3px 3px;
+}
+
+.isobath .iso-legend-kinds i[data-kind="lines"] {
+	background: repeating-linear-gradient(
+		90deg,
+		rgba(214, 236, 255, 0.85) 0 1px,
+		transparent 1px 3px
+	);
+}
+
+.isobath .iso-legend-ramp i {
+	width: 110px;
+	height: 5px;
+}
+
+.isobath .iso-legend-amber {
+	background: linear-gradient(90deg, #3b4553, var(--iso-amber));
+}
+
+.isobath .iso-legend-ramp em {
+	font-style: normal;
+	color: var(--iso-faint);
+	margin-left: 6px;
+}
+
+/* ---------- 面板 ---------- */
+
+.isobath .iso-left,
+.isobath .iso-right {
+	position: absolute;
+	z-index: 2;
+	top: 76px;
+	bottom: 146px;
+	display: flex;
+	flex-direction: column;
+}
+
+.isobath .iso-left {
+	left: var(--iso-gutter);
+	width: var(--iso-left-w);
+}
+
+.isobath .iso-right {
+	right: var(--iso-gutter);
+	width: var(--iso-right-w);
+}
+
+.isobath .iso-panel {
+	position: relative;
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	scrollbar-width: thin;
+	scrollbar-color: rgba(168, 236, 255, 0.2) transparent;
+	padding: 16px 18px 18px;
+	background: linear-gradient(
+		180deg,
+		rgba(8, 14, 20, 0.74),
+		rgba(5, 9, 13, 0.58)
+	);
+	border: 1px solid var(--iso-line);
+	backdrop-filter: blur(16px) saturate(120%);
+}
+
+.isobath .iso-panel::before,
+.isobath .iso-panel::after {
+	content: "";
+	position: absolute;
+	width: 9px;
+	height: 9px;
+	pointer-events: none;
+	border-color: var(--iso-ice);
+	border-style: solid;
+	opacity: 0.6;
+}
+
+.isobath .iso-panel::before {
+	top: -1px;
+	left: -1px;
+	border-width: 1px 0 0 1px;
+}
+
+.isobath .iso-panel::after {
+	top: -1px;
+	right: -1px;
+	border-width: 1px 1px 0 0;
+}
+
+.isobath .iso-shell {
+	opacity: 0.5;
+}
+
+.isobath .iso-head {
+	display: flex;
+	align-items: baseline;
+	gap: 9px;
+	margin: 15px 0 9px;
+	padding-bottom: 7px;
+	border-bottom: 1px solid var(--iso-line);
+	font: 500 9.5px / 1 var(--iso-mono);
+	letter-spacing: 0.22em;
+	text-transform: uppercase;
+}
+
+.isobath .iso-panel > .iso-head:first-child {
+	margin-top: 0;
+}
+
+.isobath .iso-head-index {
+	color: var(--iso-ice);
+	opacity: 0.8;
+	font: 400 9px / 1 var(--iso-mono);
+	letter-spacing: 0.1em;
+}
+
+.isobath .iso-head-title {
+	color: var(--iso-ink-2);
+}
+
+.isobath .iso-head-aside {
+	margin-left: auto;
+	color: var(--iso-faint);
+	letter-spacing: 0.1em;
+}
+
+.isobath .iso-path {
+	margin: 0 0 4px;
+	font: 400 10.5px / 1.4 var(--iso-mono);
+	color: var(--iso-faint);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.isobath .iso-name {
+	margin: 0;
+	font: 500 19px / 1.2 var(--iso-display);
+	letter-spacing: 0.01em;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.isobath .iso-big {
+	margin: 4px 0 10px;
+	font: 200 48px / 1 var(--iso-display);
+	font-variation-settings: "wdth" 104;
+	letter-spacing: -0.01em;
+	font-variant-numeric: tabular-nums;
+}
+
+.isobath .iso-unit {
+	margin-left: 6px;
+	font: 500 12px / 1 var(--iso-mono);
+	letter-spacing: 0.1em;
+	color: var(--iso-ice);
+	vertical-align: 0.9em;
+}
+
+.isobath .iso-big-amber {
+	color: var(--iso-amber);
+	text-shadow: 0 0 22px rgba(255, 178, 63, 0.3);
+}
+
+.isobath .iso-big-amber .iso-unit {
+	color: var(--iso-amber);
+}
+
+.isobath .iso-sub {
+	margin: -6px 0 12px;
+	font: 400 10.5px / 1.5 var(--iso-mono);
+	color: var(--iso-dim);
+}
+
+.isobath .iso-meta {
+	display: grid;
+	grid-template-columns: 1fr 1fr 1fr;
+	gap: 1px;
+	margin: 0;
+	background: var(--iso-line);
+	border: 1px solid var(--iso-line);
+}
+
+.isobath .iso-meta-3 {
+	margin-top: 6px;
+}
+
+.isobath .iso-meta div {
+	padding: 8px 10px 9px;
+	background: rgba(5, 9, 13, 0.9);
+}
+
+.isobath .iso-meta dt {
+	font: 400 8.5px / 1 var(--iso-mono);
+	letter-spacing: 0.18em;
+	text-transform: uppercase;
+	color: var(--iso-faint);
+}
+
+.isobath .iso-meta dd {
+	margin: 6px 0 0;
+	font: 400 12.5px / 1 var(--iso-mono);
+	font-variant-numeric: tabular-nums;
+	color: var(--iso-ink);
+}
+
+.isobath .iso-meta-amber dd {
+	color: var(--iso-amber);
+}
+
+.isobath .iso-stack {
+	display: flex;
+	height: 6px;
+	gap: 1px;
+	margin-bottom: 10px;
+}
+
+.isobath .iso-stack span {
+	display: block;
+	min-width: 1px;
+	opacity: 0.85;
+}
+
+.isobath [data-pending="true"] {
+	opacity: 0.35;
+	filter: saturate(0.2);
+}
+
+.isobath .iso-types {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	display: grid;
+	gap: 5px;
+}
+
+.isobath .iso-types li {
+	display: grid;
+	grid-template-columns: 8px 30px 1fr auto 44px;
+	align-items: center;
+	gap: 8px;
+	font: 400 10.5px / 1 var(--iso-mono);
+	color: var(--iso-dim);
+}
+
+.isobath .iso-types i {
+	width: 8px;
+	height: 8px;
+}
+
+.isobath .iso-types-code {
+	color: var(--iso-ink-2);
+	letter-spacing: 0.08em;
+}
+
+.isobath .iso-types-label {
+	font-family: var(--iso-display);
+	font-size: 11.5px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.isobath .iso-types-val {
+	color: var(--iso-ink-2);
+	font-variant-numeric: tabular-nums;
+}
+
+.isobath .iso-types-pct {
+	text-align: right;
+	color: var(--iso-faint);
+	font-variant-numeric: tabular-nums;
+}
+
+.isobath .iso-largest {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.isobath .iso-largest button {
+	position: relative;
+	width: 100%;
+	display: grid;
+	grid-template-columns: 20px 1fr auto;
+	align-items: baseline;
+	gap: 4px 8px;
+	padding: 5px 8px 6px;
+	text-align: left;
+	border-left: 1px solid transparent;
+	transition:
+		background 0.15s,
+		border-color 0.15s;
+}
+
+.isobath .iso-largest button:hover:not(:disabled),
+.isobath .iso-largest button[data-active="true"] {
+	background: rgba(168, 236, 255, 0.05);
+	border-left-color: var(--iso-ice);
+}
+
+.isobath .iso-largest-rank {
+	font: 400 9px / 1 var(--iso-mono);
+	color: var(--iso-faint);
+}
+
+.isobath .iso-largest-name {
+	font: 500 12.5px / 1.2 var(--iso-display);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.isobath .iso-largest-val {
+	font: 400 10.5px / 1 var(--iso-mono);
+	color: var(--iso-ink-2);
+	font-variant-numeric: tabular-nums;
+}
+
+.isobath .iso-largest-bar {
+	grid-column: 2 / 4;
+	height: 2px;
+	background: var(--iso-ghost);
+}
+
+.isobath .iso-largest-bar span {
+	display: block;
+	height: 100%;
+	background: var(--iso-ice);
+	opacity: 0.75;
+}
+
+/* ---------- 查找 ---------- */
+
+.isobath .iso-search {
+	position: relative;
+	z-index: 5;
+	flex: none;
+	margin-bottom: 8px;
+}
+
+.isobath .iso-search-field {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	height: 32px;
+	padding: 0 10px;
+	border: 1px solid var(--iso-line);
+	background: rgba(6, 11, 16, 0.72);
+	backdrop-filter: blur(12px);
+	transition: border-color 0.2s;
+}
+
+.isobath .iso-search-field:focus-within {
+	border-color: var(--iso-ice);
+}
+
+.isobath .iso-search-field svg {
+	width: 13px;
+	height: 13px;
+	flex: none;
+	fill: none;
+	stroke: var(--iso-dim);
+	stroke-width: 1.3;
+}
+
+.isobath .iso-search-field input {
+	flex: 1;
+	min-width: 0;
+	height: 100%;
+	border: 0;
+	outline: none;
+	background: none;
+	color: var(--iso-ink);
+	font: 400 11.5px / 1 var(--iso-mono);
+}
+
+.isobath .iso-search-field input::placeholder {
+	color: var(--iso-faint);
+}
+
+.isobath .iso-search-field input::-webkit-search-cancel-button {
+	filter: invert(0.7);
+}
+
+.isobath .iso-search-field kbd {
+	flex: none;
+	padding: 2px 5px;
+	border: 1px solid var(--iso-line-2);
+	font: 400 9px / 1 var(--iso-mono);
+	color: var(--iso-faint);
+}
+
+.isobath .iso-search-results {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: calc(100% + 4px);
+	padding: 8px 0 6px;
+	background: rgba(5, 9, 13, 0.96);
+	border: 1px solid var(--iso-line-2);
+	box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);
+}
+
+.isobath .iso-search-sum {
+	margin: 0 12px 6px;
+	font: 400 10px / 1.4 var(--iso-mono);
+	color: var(--iso-dim);
+}
+
+.isobath .iso-search-sum b {
+	font-weight: 500;
+	color: var(--iso-ice);
+}
+
+.isobath .iso-search-results ul {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.isobath .iso-search-results button {
+	width: 100%;
+	display: grid;
+	grid-template-columns: 1fr auto;
+	gap: 2px 10px;
+	padding: 6px 12px;
+	text-align: left;
+}
+
+.isobath .iso-search-results button:hover {
+	background: var(--iso-ice-soft);
+}
+
+.isobath .iso-search-results button span:first-child {
+	font: 500 12px / 1.2 var(--iso-display);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.isobath .iso-search-results button em {
+	grid-column: 1;
+	grid-row: 2;
+	font: 400 9.5px / 1.3 var(--iso-mono);
+	font-style: normal;
+	color: var(--iso-faint);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.isobath .iso-search-results button span:last-child {
+	grid-column: 2;
+	grid-row: 1 / 3;
+	align-self: center;
+	font: 400 10.5px / 1 var(--iso-mono);
+	color: var(--iso-ink-2);
+}
+
+.isobath .iso-empty {
+	margin: 4px 0 0;
+	font: 400 11.5px / 1.6 var(--iso-display);
+	color: var(--iso-dim);
+}
+
+/* ---------- 测量中 ---------- */
+
+.isobath .iso-rate {
+	position: relative;
+	margin: 4px auto 0;
+	width: 220px;
+}
+
+.isobath .iso-rate svg {
+	display: block;
+	width: 100%;
+	overflow: visible;
+}
+
+.isobath .iso-rate-track {
+	fill: none;
+	stroke: var(--iso-ghost);
+	stroke-width: 1;
+}
+
+.isobath .iso-rate-arc {
+	fill: none;
+	stroke: var(--iso-ice);
+	stroke-width: 2;
+	filter: drop-shadow(0 0 4px rgba(168, 236, 255, 0.8));
+}
+
+.isobath .iso-rate-ticks line {
+	stroke: var(--iso-faint);
+	stroke-width: 0.8;
+}
+
+.isobath .iso-rate-ticks line[data-major="true"] {
+	stroke: var(--iso-dim);
+	stroke-width: 1.1;
+}
+
+.isobath .iso-rate-needle {
+	stroke: #ffffff;
+	stroke-width: 1.2;
+}
+
+.isobath .iso-rate-peak {
+	fill: var(--iso-amber);
+}
+
+.isobath .iso-rate-hub {
+	fill: var(--iso-ice);
+}
+
+.isobath .iso-rate-read {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 56%;
+	margin: 0;
+	text-align: center;
+}
+
+.isobath .iso-rate-read span {
+	display: block;
+	font: 200 28px / 1 var(--iso-display);
+	font-variant-numeric: tabular-nums;
+}
+
+.isobath .iso-rate-read em {
+	font: 400 9px / 1 var(--iso-mono);
+	font-style: normal;
+	letter-spacing: 0.16em;
+	text-transform: uppercase;
+	color: var(--iso-faint);
+}
+
+.isobath .iso-rate-peak-read {
+	margin: 20px 0 0;
+	text-align: center;
+	font: 400 9.5px / 1 var(--iso-mono);
+	color: var(--iso-amber);
+	letter-spacing: 0.08em;
+}
+
+.isobath .iso-log {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	font: 400 10px / 1.75 var(--iso-mono);
+	color: var(--iso-ink-2);
+}
+
+.isobath .iso-log li {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.isobath .iso-note {
+	margin: 14px 0 0;
+	font: 400 10px / 1.6 var(--iso-mono);
+	color: var(--iso-faint);
+}
+
+/* ---------- 可回收 ---------- */
+
+.isobath .iso-risk {
+	display: flex;
+	height: 6px;
+	gap: 1px;
+}
+
+.isobath .iso-risk span[data-risk="regenerates"],
+.isobath .iso-risk-legend li[data-risk="regenerates"] i,
+.isobath .iso-find-row i[data-risk="regenerates"] {
+	background: var(--iso-risk-regenerates);
+}
+
+.isobath .iso-risk span[data-risk="review"],
+.isobath .iso-risk-legend li[data-risk="review"] i,
+.isobath .iso-find-row i[data-risk="review"] {
+	background: var(--iso-risk-review);
+}
+
+.isobath .iso-risk span[data-risk="final"],
+.isobath .iso-risk-legend li[data-risk="final"] i,
+.isobath .iso-find-row i[data-risk="final"] {
+	background: var(--iso-risk-final);
+}
+
+.isobath .iso-risk-legend {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px 14px;
+	white-space: nowrap;
+	margin: 8px 0 14px;
+	padding: 0;
+	list-style: none;
+	font: 400 9.5px / 1 var(--iso-mono);
+	color: var(--iso-dim);
+}
+
+.isobath .iso-risk-legend li {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.isobath .iso-risk-legend i {
+	width: 7px;
+	height: 7px;
+}
+
+.isobath .iso-risk-legend span {
+	color: var(--iso-ink-2);
+}
+
+.isobath .iso-find-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	border-top: 1px solid var(--iso-line);
+}
+
+.isobath .iso-find-list > li {
+	border-bottom: 1px solid var(--iso-line);
+}
+
+.isobath .iso-find-row {
+	width: 100%;
+	display: grid;
+	grid-template-columns: 7px 1fr auto;
+	align-items: center;
+	gap: 10px;
+	padding: 9px 8px 9px 6px;
+	text-align: left;
+	border-left: 1px solid transparent;
+	transition:
+		background 0.15s,
+		border-color 0.15s;
+}
+
+.isobath .iso-find-row i {
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+}
+
+.isobath .iso-find-list > li[data-lit="true"] .iso-find-row,
+.isobath .iso-find-row:hover {
+	background: var(--iso-amber-soft);
+	border-left-color: var(--iso-amber);
+}
+
+.isobath .iso-find-title {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	min-width: 0;
+	font: 500 12.5px / 1.2 var(--iso-display);
+}
+
+.isobath .iso-find-title em {
+	font: 400 9.5px / 1 var(--iso-mono);
+	font-style: normal;
+	color: var(--iso-faint);
+}
+
+.isobath .iso-find-val {
+	font: 400 11.5px / 1 var(--iso-mono);
+	font-variant-numeric: tabular-nums;
+	color: var(--iso-amber);
+}
+
+.isobath .iso-find-body {
+	padding: 2px 8px 12px 23px;
+}
+
+.isobath .iso-find-body > p {
+	margin: 0 0 10px;
+	font: 400 11.5px / 1.55 var(--iso-display);
+	color: var(--iso-dim);
+}
+
+.isobath .iso-cmd {
+	display: flex;
+	align-items: stretch;
+	margin-bottom: 10px;
+	border: 1px solid var(--iso-line-2);
+	background: rgba(0, 0, 0, 0.35);
+}
+
+.isobath .iso-cmd code {
+	flex: 1;
+	padding: 8px 10px;
+	font: 400 10px / 1.5 var(--iso-mono);
+	color: var(--iso-ink);
+	word-break: break-word;
+}
+
+.isobath .iso-cmd button {
+	flex: none;
+	padding: 0 10px;
+	border-left: 1px solid var(--iso-line-2);
+	font: 500 9px / 1 var(--iso-mono);
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--iso-ice);
+}
+
+.isobath .iso-places {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.isobath .iso-places button {
+	width: 100%;
+	display: flex;
+	justify-content: space-between;
+	gap: 10px;
+	padding: 4px 0;
+	font: 400 10px / 1.4 var(--iso-mono);
+	color: var(--iso-ink-2);
+	text-align: left;
+}
+
+.isobath .iso-places button span:first-child {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.isobath .iso-places button span:last-child {
+	color: var(--iso-faint);
+	flex: none;
+}
+
+.isobath .iso-places button:hover span:first-child {
+	color: var(--iso-ice);
+}
+
+.isobath .iso-more {
+	margin: 4px 0 0;
+	font: 400 9.5px / 1 var(--iso-mono);
+	color: var(--iso-faint);
+}
+
+.isobath .iso-risk-note {
+	margin: 10px 0 0;
+	font: 400 9.5px / 1.5 var(--iso-mono);
+	color: var(--iso-faint);
+}
+
+.isobath .iso-risk-note[data-risk="final"] {
+	color: var(--iso-risk-final);
+}
+
+/* ---------- 测量一个真文件夹 ---------- */
+
+.isobath .iso-scan {
+	position: absolute;
+	z-index: 4;
+	left: 50%;
+	top: 50%;
+	width: min(420px, calc(100% - 32px));
+	transform: translate(-50%, -50%);
+	padding: 22px 24px;
+	background: rgba(5, 9, 13, 0.9);
+	border: 1px solid var(--iso-line-2);
+	backdrop-filter: blur(18px);
+	box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+}
+
+.isobath .iso-scan > p {
+	margin: 0;
+}
+
+.isobath .iso-scan-kicker {
+	font: 500 9.5px / 1 var(--iso-mono);
+	letter-spacing: 0.22em;
+	text-transform: uppercase;
+	color: var(--iso-ice);
+}
+
+.isobath .iso-scan > .iso-scan-name {
+	margin-top: 8px;
+	font: 300 26px / 1.1 var(--iso-display);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.isobath .iso-scan-bar {
+	position: relative;
+	display: block;
+	height: 2px;
+	margin: 16px 0 12px;
+	overflow: hidden;
+	background: var(--iso-ghost);
+}
+
+.isobath .iso-scan-bar::after {
+	content: "";
+	position: absolute;
+	inset: 0 auto 0 0;
+	width: 30%;
+	background: var(--iso-ice);
+	box-shadow: 0 0 8px var(--iso-ice);
+	animation: iso-scan 1.4s ease-in-out infinite;
+}
+
+@keyframes iso-scan {
+	from {
+		transform: translateX(-100%);
+	}
+	to {
+		transform: translateX(340%);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.isobath .iso-scan-bar::after {
+		animation: none;
+		width: 100%;
+		opacity: 0.5;
+	}
+}
+
+.isobath .iso-scan-read {
+	font: 400 11.5px / 1.4 var(--iso-mono);
+	font-variant-numeric: tabular-nums;
+}
+
+.isobath .iso-scan > .iso-scan-path {
+	margin-top: 6px;
+	font: 400 10px / 1.4 var(--iso-mono);
+	color: var(--iso-faint);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.isobath .iso-scan-actions {
+	display: flex;
+	gap: 8px;
+	margin: 18px 0 12px;
+}
+
+.isobath .iso-scan-note {
+	font: 400 9.5px / 1.5 var(--iso-mono);
+	color: var(--iso-faint);
+}
+
+/* ---------- 底栏 ---------- */
+
+.isobath .iso-bottom {
+	position: absolute;
+	z-index: 2;
+	left: var(--iso-gutter);
+	right: var(--iso-gutter);
+	bottom: 18px;
+	height: 112px;
+	display: grid;
+	grid-template-columns: var(--iso-left-w) 1fr var(--iso-right-w);
+	gap: 24px;
+	align-items: end;
+	pointer-events: none;
+}
+
+.isobath .iso-bottom > * {
+	pointer-events: auto;
+}
+
+.isobath .iso-bottom-left {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding-bottom: 2px;
+}
+
+.isobath .iso-crumbs {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 2px 0;
+	font: 400 11px / 1.4 var(--iso-mono);
+}
+
+.isobath .iso-crumbs button {
+	padding: 2px 4px;
+	color: var(--iso-dim);
+}
+
+.isobath .iso-crumbs button:hover {
+	color: var(--iso-ice);
+}
+
+.isobath .iso-crumbs button[aria-current="location"] {
+	color: var(--iso-ink);
+}
+
+.isobath .iso-crumb-sep {
+	color: var(--iso-faint);
+	padding: 0 2px;
+}
+
+.isobath .iso-hint {
+	margin: 0;
+	font: 400 9.5px / 1.4 var(--iso-mono);
+	color: var(--iso-faint);
+	letter-spacing: 0.04em;
+}
+
+.isobath .iso-strata {
+	min-width: 0;
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+}
+
+.isobath .iso-strata-head {
+	display: flex;
+	align-items: baseline;
+	gap: 9px;
+	font: 500 9.5px / 1 var(--iso-mono);
+	letter-spacing: 0.22em;
+	text-transform: uppercase;
+	margin-bottom: 8px;
+}
+
+.isobath .iso-strata-head > span:not(.iso-strata-read) {
+	flex: none;
+	white-space: nowrap;
+}
+
+.isobath .iso-strata-scale {
+	font: 400 9px / 1 var(--iso-mono);
+	letter-spacing: 0.08em;
+	text-transform: none;
+	color: var(--iso-faint);
+}
+
+.isobath .iso-strata-read {
+	flex: 0 1 auto;
+	min-width: 0;
+	margin-left: auto;
+	font: 400 10px / 1 var(--iso-mono);
+	letter-spacing: 0.02em;
+	text-transform: none;
+	color: var(--iso-dim);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.isobath .iso-strata-read b {
+	font-weight: 500;
+	color: var(--iso-ink);
+}
+
+.isobath .iso-strata-read button {
+	margin-left: 10px;
+	color: var(--iso-ice);
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	font-size: 9px;
+}
+
+.isobath .iso-strata-plot {
+	position: relative;
+	flex: 1;
+	display: grid;
+	grid-template-columns: repeat(25, 1fr);
+	gap: 2px;
+	align-items: end;
+	padding-bottom: 16px;
+	border-bottom: 1px solid var(--iso-line-2);
+	cursor: crosshair;
+	touch-action: none;
+	user-select: none;
+}
+
+.isobath .iso-strata-plot[data-disabled="true"] {
+	cursor: default;
+	opacity: 0.5;
+}
+
+.isobath .iso-strata-col {
+	position: relative;
+	height: 100%;
+	display: flex;
+	align-items: flex-end;
+}
+
+.isobath .iso-strata-bar,
+.isobath .iso-strata-over {
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	min-height: 1px;
+}
+
+.isobath .iso-strata-bar {
+	background: linear-gradient(
+		180deg,
+		rgba(168, 236, 255, 0.55),
+		rgba(168, 236, 255, 0.16)
+	);
+}
+
+.isobath .iso-strata-over {
+	border-top: 1px solid #ffffff;
+	background: rgba(255, 255, 255, 0.28);
+}
+
+.isobath .iso-strata-col[data-sel="true"] .iso-strata-bar {
+	background: linear-gradient(180deg, var(--iso-ice), rgba(168, 236, 255, 0.4));
+	box-shadow: 0 0 10px rgba(168, 236, 255, 0.4);
+}
+
+.isobath .iso-strata-col[data-sel="out"] .iso-strata-bar {
+	opacity: 0.25;
+}
+
+.isobath .iso-strata-year {
+	position: absolute;
+	left: 0;
+	bottom: -15px;
+	font: 400 9px / 1 var(--iso-mono);
+	color: var(--iso-faint);
+	white-space: nowrap;
+}
+
+.isobath .iso-telemetry {
+	align-self: start;
+	display: grid;
+	grid-template-columns: repeat(3, auto);
+	justify-content: end;
+	gap: 16px;
+	margin: 2px 0 0;
+	font: 400 10px / 1 var(--iso-mono);
+}
+
+.isobath .iso-telemetry dt {
+	font-size: 8.5px;
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
+	color: var(--iso-faint);
+	margin-bottom: 6px;
+}
+
+.isobath .iso-telemetry dd {
+	margin: 0;
+	color: var(--iso-dim);
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+
+/* ---------- 中等宽度:面板收窄 ---------- */
+
+@media (max-width: 1500px) {
+	.isobath .iso-tag {
+		display: none;
+	}
+}
+
+@media (max-width: 1360px) {
+	.isobath {
+		--iso-left-w: 272px;
+		--iso-right-w: 304px;
+		--iso-gutter: 20px;
+	}
+	.isobath .iso-telemetry div:nth-child(3) {
+		display: none;
+	}
+}
+
+/* ---------- 窄屏:整台仪器改成上下堆叠 ---------- */
+
+@media (max-width: 1079px) {
+	.isobath {
+		--iso-gutter: 16px;
+	}
+	.isobath .iso-stage {
+		height: auto;
+		min-height: 0;
+		overflow: visible;
+		display: flex;
+		flex-direction: column;
+		gap: 14px;
+		padding-bottom: 28px;
+	}
+	.isobath .iso-top,
+	.isobath .iso-tools,
+	.isobath .iso-left,
+	.isobath .iso-right,
+	.isobath .iso-bottom,
+	.isobath .iso-viewport {
+		position: relative;
+		inset: auto;
+		width: auto;
+		top: auto;
+		bottom: auto;
+		left: auto;
+		right: auto;
+	}
+	.isobath .iso-top {
+		order: 0;
+		height: auto;
+		flex-wrap: wrap;
+		gap: 10px 16px;
+		padding: 14px var(--iso-gutter);
+	}
+	.isobath .iso-volume {
+		order: 3;
+		width: 100%;
+	}
+	.isobath .iso-source {
+		display: flex;
+		gap: 8px;
+		flex: none;
+	}
+
+	.isobath .iso-btn-quiet {
+		color: var(--iso-dim);
+		border-color: var(--iso-line);
+	}
+
+	.isobath .iso-btn-quiet:hover:not(:disabled) {
+		color: var(--iso-ice);
+	}
+
+	.isobath .iso-status {
+		order: 4;
+		width: 100%;
+		flex-wrap: wrap;
+		justify-content: flex-start;
+	}
+	.isobath .iso-progress {
+		flex: 1;
+		min-width: 80px;
+	}
+	.isobath .iso-tools {
+		order: 1;
+		padding: 0 var(--iso-gutter);
+	}
+	.isobath .iso-viewport {
+		order: 2;
+		height: min(96vw, 620px);
+		margin: 0;
+	}
+	.isobath .iso-left {
+		order: 3;
+		margin: 0 var(--iso-gutter);
+	}
+	.isobath .iso-right {
+		order: 4;
+		margin: 0 var(--iso-gutter);
+	}
+	.isobath .iso-bottom {
+		order: 5;
+		margin: 0 var(--iso-gutter);
+		height: auto;
+		grid-template-columns: 1fr;
+		gap: 18px;
+	}
+	.isobath .iso-strata {
+		height: 120px;
+	}
+	.isobath .iso-telemetry {
+		justify-content: start;
+	}
+	.isobath .iso-panel {
+		overflow: visible;
+	}
+}
+
+@media (max-width: 560px) {
+	.isobath .iso-tag,
+	.isobath .iso-volume-meta {
+		display: none;
+	}
+	.isobath .iso-seg-label {
+		display: none;
+	}
+	.isobath .iso-legend-ramp em {
+		display: none;
+	}
+	.isobath .iso-big {
+		font-size: 44px;
+	}
+}
+
+/* ---------- 桌面版(yIsobath)加的部分 ---------- */
+
+/* macOS 的红绿灯压在顶栏左上角(tauri.conf 的 trafficLightPosition 把它们放在顶栏正中的高度) */
+.platform-macos .isobath .iso-top {
+	padding-left: 96px;
+}
+
+/* 测量入口:一个按钮,菜单里是整块盘 / 家目录 / 选文件夹。还在看演示卷时亮一点 */
+.isobath .iso-source {
+	flex: none;
+	display: inline-flex;
+	align-items: center;
+}
+
+.isobath .iso-source[data-demo="true"] {
+	border-color: var(--iso-ice);
+	background: var(--iso-ice-soft);
+}
+
+.iso-menu-hint {
+	margin-left: auto;
+	padding-left: 18px;
+	font:
+		400 11px / 1 "Azeret Mono Variable",
+		ui-monospace,
+		monospace;
+	opacity: 0.55;
+}
+
+/* 顶栏在窄窗口里让位:先收进度条,再收计时读数和卷的细节 */
+.isobath .iso-status[data-phase="complete"] .iso-progress {
+	display: none;
+}
+
+@media (max-width: 1360px) {
+	.isobath .iso-volume-meta,
+	.isobath .iso-status-read {
+		display: none;
+	}
+}
+
+.isobath .iso-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	height: 22px;
+	padding: 0 9px;
+	border: 1px solid rgba(255, 178, 63, 0.35);
+	font: 400 9.5px / 1 var(--iso-mono);
+	letter-spacing: 0.08em;
+	color: var(--iso-amber);
+	white-space: nowrap;
+}
+
+.isobath .iso-chip em {
+	font-style: normal;
+	text-decoration: underline;
+	text-underline-offset: 2px;
+}
+
+.isobath .iso-scan > .iso-scan-text {
+	margin-top: 12px;
+	font: 400 11px / 1.55 var(--iso-mono);
+	color: var(--iso-ink-2);
+}
+
+/* 焦点面板里的操作条 */
+.isobath .iso-actions {
+	margin: 10px 0 14px;
+	padding: 9px 10px 10px;
+	border: 1px solid var(--iso-line);
+	background: rgba(168, 236, 255, 0.025);
+}
+
+.isobath .iso-actions-for {
+	display: flex;
+	align-items: baseline;
+	gap: 6px;
+	margin: 0 0 8px;
+	font: 400 10px / 1.3 var(--iso-mono);
+	color: var(--iso-dim);
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+.isobath .iso-actions-for span {
+	color: var(--iso-faint);
+}
+
+.isobath .iso-actions-for em {
+	margin-left: auto;
+	font-style: normal;
+	color: var(--iso-faint);
+}
+
+.isobath .iso-actions-row {
+	display: flex;
+	gap: 6px;
+}
+
+.isobath .iso-actions-row .iso-btn {
+	flex: 1;
+	height: 24px;
+	padding: 0 6px;
+	letter-spacing: 0.08em;
+	white-space: nowrap;
+}
+
+.isobath .iso-btn-trash {
+	color: var(--iso-risk-final);
+	border-color: rgba(255, 111, 97, 0.32);
+}
+
+.isobath .iso-btn-trash:hover:not(:disabled) {
+	background: rgba(255, 111, 97, 0.12);
+	border-color: var(--iso-risk-final);
+}
+
+.isobath .iso-btn:disabled {
+	opacity: 0.4;
+}
+
+/* 弹层(右键菜单、确认框)挂在 body 上,读不到 .isobath 的变量,自带字体 */
+.iso-menu {
+	font-family: "Saira Variable", ui-sans-serif, system-ui, sans-serif;
+}
+
+.iso-dialog {
+	font-family: "Saira Variable", ui-sans-serif, system-ui, sans-serif;
+}
+
+.iso-dialog [data-slot="alert-dialog-description"] {
+	display: grid;
+	gap: 8px;
+}
+
+.iso-dialog .iso-dialog-path {
+	font:
+		400 11px / 1.45 "Azeret Mono Variable",
+		ui-monospace,
+		monospace;
+	word-break: break-all;
+	color: #e8f1fa;
+}
+
+.iso-dialog .iso-dialog-size {
+	font:
+		400 11px / 1.4 "Azeret Mono Variable",
+		ui-monospace,
+		monospace;
+}
+
+.iso-dialog .iso-dialog-rule {
+	font:
+		500 11px / 1.4 "Azeret Mono Variable",
+		ui-monospace,
+		monospace;
+	color: #6fe3c0;
+}
+
+.iso-dialog .iso-dialog-rule[data-risk="review"] {
+	color: #ffb23f;
+}
+
+.iso-dialog .iso-dialog-rule[data-risk="final"] {
+	color: #ff6f61;
+}

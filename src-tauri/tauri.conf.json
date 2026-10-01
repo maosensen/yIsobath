@@ -1,44 +1,41 @@
 {
 	"$schema": "https://schema.tauri.app/config/2",
-	"productName": "yDesktopTemplate",
-	"version": "0.2.0",
-	"identifier": "com.maosensen.ydesktoptemplate",
+	"productName": "yIsobath",
+	"version": "0.1.0",
+	"identifier": "com.maosensen.yisobath",
 	"build": {
 		"beforeDevCommand": "pnpm dev",
-		"devUrl": "http://localhost:4383",
+		"devUrl": "http://localhost:4387",
 		"beforeBuildCommand": "pnpm build",
 		"frontendDist": "../dist"
 	},
 	"app": {
-		"macOSPrivateApi": true,
 		"windows": [
 			{
 				"label": "main",
-				"title": "yDesktopTemplate",
-				"width": 1100,
-				"height": 720,
-				"minWidth": 720,
-				"minHeight": 480,
+				"title": "yIsobath",
+				"width": 1440,
+				"height": 900,
+				"minWidth": 1080,
+				"minHeight": 680,
 				"resizable": true,
 				"visible": false,
-				"transparent": true,
+				"theme": "Dark",
+				"backgroundColor": "#04070a",
 				"titleBarStyle": "Overlay",
 				"hiddenTitle": true,
-				"windowEffects": {
-					"effects": ["sidebar", "mica", "acrylic", "blur"],
-					"state": "followsWindowActiveState"
-				}
+				"trafficLightPosition": { "x": 20, "y": 24 }
 			}
 		],
 		"security": {
-			"csp": "default-src 'self'; img-src 'self' asset: http://asset.localhost data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; script-src 'self'; connect-src 'self' ipc: http://ipc.localhost ws://localhost:4384 http://localhost:4383"
+			"csp": "default-src 'self'; img-src 'self' asset: http://asset.localhost data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; script-src 'self'; connect-src 'self' ipc: http://ipc.localhost ws://localhost:4388 http://localhost:4387"
 		}
 	},
 	"plugins": {
 		"updater": {
 			"pubkey": "REPLACE_WITH_YOUR_UPDATER_PUBKEY",
 			"endpoints": [
-				"https://github.com/OWNER/REPO/releases/latest/download/latest.json"
+				"https://github.com/maosensen/yIsobath/releases/latest/download/latest.json"
 			]
 		}
 	},
@@ -46,10 +43,10 @@
 		"active": true,
 		"targets": "all",
 		"createUpdaterArtifacts": false,
-		"category": "Productivity",
+		"category": "Utility",
 		"copyright": "© 2026 maosensen",
-		"shortDescription": "Tauri 2 + React desktop app template.",
-		"longDescription": "yDesktopTemplate is a production-shaped Tauri 2 + React desktop app template, carrying the yAssets shell baseline.",
+		"shortDescription": "A disk survey instrument.",
+		"longDescription": "yIsobath surveys a disk or a folder and draws it as a stepped relief: one terrace per folder level, an arc per byte, with lenses for file type, age and reclaimable space.",
 		"icon": [
 			"icons/32x32.png",
 			"icons/128x128.png",

@@ -1,34 +1,42 @@
-# Release card — yDesktopTemplate
+# Release card — yIsobath
 
-<!-- 由 release skill 生成于 2026-07-10;发版流程见 user 级 release skill,本卡只记录项目特异性事实。 -->
+<!-- 由 yDesktopTemplate v0.2.0 的发版卡改写,2026-10-01;发版流程见 user 级 release skill,本卡只记录项目特异性事实。 -->
 
 ## 版本文件(bump 时全部同步)
 
 - `package.json`
 - `src-tauri/tauri.conf.json`  <!-- 发布版本以它为准 -->
 - `src-tauri/Cargo.toml`
-- `src-tauri/Cargo.lock`(`ydesktoptemplate` 条目)
+- `src-tauri/Cargo.lock`(`yisobath` 条目)
+
+**首次发版**:四处现在都是 `0.1.0`、仓库里还没有 tag。第一次发版就发 `v0.1.0`,不再 bump。
 
 ## 门禁
 
 - `pnpm check`(typecheck + biome + vitest + bindings 漂移 + rustfmt + clippy)
   - bindings.ts 是生成物:变更属正常,重新生成随功能 commit,不手改
-- smoke:—(门禁已含双端测试)
+- 再跑一次 `pnpm build`(CI 也跑,确保前端打包没坏)
+- smoke:`cargo run --release --example survey -- <某个文件夹>` 能走完并打印折叠结果
 
 ## CHANGELOG
 
 - `CHANGELOG.md`,Keep a Changelog,英文
-- 应用内 What's New:`src/lib/changelog/en.ts`(单语,英文;release 带 title/summary,change 带 kind/title/text,text 不以标题开头)
+- 应用内 What's New:`src/lib/changelog/en.ts`(单语,英文;release 带 title/summary,change 带 kind/title/text,text 不以标题开头)。建账时为空数组,首次发版时补第一条
 
 ## 发布渠道
 
 - 渠道:A(tag `v*` 触发 `.github/workflows/release.yml`,四平台矩阵 → draft Release)
 - **CI 只建空 draft,不填 body**:发布前用 `gh release edit vX.Y.Z --notes-file <(CHANGELOG 对应小节)` 填入
-- 产物期望数:9(macOS dmg ×2 + app.tar.gz ×2 + Windows msi/setup.exe + Linux deb/rpm/AppImage;2026-07-10 v0.1.0 实测。更新链未启用故无 .sig / latest.json;启用后改用 17 口径)
-- 发布后验证:资产数与本卡一致
-- 2026-10 起 release.yml 用 `tauri-apps/tauri-action@v1`:macOS 的 `.app.tar.gz`(及启用更新链后的 `.sig`)文件名带版本号,与其余安装包一致。v0.2.0(2026-10-01)实测:资产数仍为 9,全部以 `yDesktopTemplate` 开头(如 `yDesktopTemplate_0.2.0_aarch64.app.tar.gz`、`yDesktopTemplate-0.2.0-1.x86_64.rpm`);tauri-action v1 未改动 create-release 建的 Release 名(`yDesktopTemplate vX.Y.Z`)与空 body
+- 产物期望数:未实测。模板 v0.2.0 在更新链未启用时是 9 个(macOS dmg ×2 + app.tar.gz ×2 + Windows msi/setup.exe + Linux deb/rpm/AppImage),启用更新链后按 yAssets 的 17 口径(含 .sig 与 latest.json)。第一次发版后把实测值写回这里
+
+## 首次发版前要做的(都要用户本人操作密钥 / secrets,不经 agent 之手)
+
+1. **GitHub 仓库**:`maosensen/yIsobath` 还不存在;本地 `origin` 已指向它。建仓与第一次 push 要用户点头。
+2. **自更新**:`pnpm tauri signer generate -w ~/.tauri/yisobath.key`(带密码)→ 把公钥填进 `tauri.conf.json` 的 `plugins.updater.pubkey`(endpoint 已填 `maosensen/yIsobath`)→ `bundle.createUpdaterArtifacts` 改为 `true` → repo secrets 配 `TAURI_SIGNING_PRIVATE_KEY` / `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`。私钥和密码永不入库;丢了任一,已发出去的版本永远收不到更新。
+3. **Apple 签名 + 公证**:照 yAssets 的 release.yml(第 112–123 行)把 `APPLE_CERTIFICATE` / `APPLE_CERTIFICATE_PASSWORD` / `APPLE_SIGNING_IDENTITY` / `APPLE_ID` / `APPLE_PASSWORD` / `APPLE_TEAM_ID` 的注释打开,并在 repo secrets 里配上(与 yAssets 同一个 Developer ID)。
+   **这一条对 yIsobath 比对别的 app 更重要**:macOS 的「完全磁盘访问权限」按签名身份记。Developer ID 签名不变,更新后权限还在;未签名 / ad-hoc 签名的包每次更新都要重新去系统设置里授权。
 
 ## 本项目特有注意事项
 
-- **自更新链未启用**:`bundle.createUpdaterArtifacts: false`,`plugins.updater` 的 pubkey/endpoints 为占位符。克隆出新项目启用时:`pnpm tauri signer generate` 生成密钥 → 填 pubkey/endpoints → `createUpdaterArtifacts` 改回 `true` → 配 repo secrets(`TAURI_SIGNING_PRIVATE_KEY` / `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`)→ 本卡产物期望数改回 17 口径(含 .sig 与 latest.json)。
-- bundle identifier 已独立为 `com.maosensen.ydesktoptemplate`(2026-10-01;此前与已安装的 yAssets.app 共用 `com.maosensen.yassets`,会被 single-instance 互相拦截、共用数据目录)。2026-10-01 起其余命名也已对齐仓库:productName `yDesktopTemplate`、package name `ydesktoptemplate`、Cargo crate `ydesktoptemplate`(lib `ydesktoptemplate_lib`),安装包文件名随之变为 `yDesktopTemplate_*`。克隆成新项目后这几处连同 identifier 都要换成新项目自己的。
+- bundle identifier `com.maosensen.yisobath`,productName `yIsobath`,Cargo crate `yisobath`(lib `yisobath_lib`),dev 端口 4387(HMR 4388)。
+- 日志在 `~/Library/Logs/com.maosensen.yisobath/yIsobath.log`;dev 构建里 `YISOBATH_PERF=1` 会每 5 秒写一条帧时间。

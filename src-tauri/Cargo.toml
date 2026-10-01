@@ -1,7 +1,7 @@
 [package]
-name = "ydesktoptemplate"
-version = "0.2.0"
-description = "yDesktopTemplate — a production-shaped Tauri 2 + React desktop app template"
+name = "yisobath"
+version = "0.1.0"
+description = "yIsobath — a disk survey instrument for the desktop"
 authors = ["maosensen"]
 edition = "2024"
 
@@ -11,16 +11,17 @@ edition = "2024"
 # The `_lib` suffix may seem redundant but it is necessary
 # to make the lib name unique and wouldn't conflict with the bin name.
 # This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
-name = "ydesktoptemplate_lib"
+name = "yisobath_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-# macos-private-api: transparent WebView background so the native window
-# vibrancy (frosted glass) shows through — see tauri.conf `macOSPrivateApi`.
-tauri = { version = "2", features = ["macos-private-api"] }
+# specta: typed `Channel`s in the generated bindings (survey progress).
+# The window is opaque (the instrument paints edge to edge), so the template's
+# `macos-private-api` vibrancy feature is not used.
+tauri = { version = "2", features = ["specta"] }
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -34,6 +35,18 @@ tauri-plugin-dialog = "2"
 tauri-plugin-fs = "2"
 tauri-plugin-log = "2"
 tauri-plugin-store = "2"
+log = "0.4"
+# The survey walks folders on a dedicated pool (IO-bound, so more threads than cores).
+rayon = "1"
+# Move to Trash (NSFileManager on macOS, the Recycle Bin on Windows, XDG on Linux).
+trash = "5"
+
+[target.'cfg(unix)'.dependencies]
+# statfs / statvfs for volume capacity.
+libc = "0.2"
+
+[dev-dependencies]
+tempfile = "3"
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-single-instance = "2"

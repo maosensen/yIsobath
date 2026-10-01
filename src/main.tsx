@@ -12,6 +12,11 @@ import "./index.css";
 if (navigator.userAgent.includes("Windows")) {
 	document.documentElement.classList.add("platform-windows");
 }
+// macOS draws the traffic lights over the overlay titlebar; the instrument's
+// top bar leaves room for them under this class.
+if (navigator.userAgent.includes("Mac")) {
+	document.documentElement.classList.add("platform-macos");
+}
 
 // Created automatically by @tanstack/router-plugin on first dev/build.
 // The queryClient rides along in router context so route guards

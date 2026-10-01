@@ -20,6 +20,15 @@ pub enum AppError {
     Io(String),
     #[error("database error: {0}")]
     Db(String),
+    /// The user stopped the survey and asked for nothing to be shown.
+    #[error("cancelled")]
+    Cancelled,
+    /// Another survey is still walking.
+    #[error("busy")]
+    Busy,
+    /// The app declined to do it; the detail says why (shown to the user).
+    #[error("refused: {0}")]
+    Refused(String),
     /// User-visible catch-all. Internal details belong in the logs, not here.
     #[error("internal error")]
     Internal,

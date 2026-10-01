@@ -1,6 +1,7 @@
 mod commands;
 mod error;
 mod state;
+pub mod survey;
 
 use state::AppState;
 use tauri_specta::{Builder, collect_commands};
@@ -11,9 +12,13 @@ use tauri_specta::{Builder, collect_commands};
 /// here and they flow to both the handler and the generated TypeScript.
 fn specta_builder() -> Builder<tauri::Wry> {
     Builder::<tauri::Wry>::new().commands(collect_commands![
-        commands::greet,
-        commands::uptime_ms,
-        commands::list_dir
+        commands::survey_places,
+        commands::survey,
+        commands::survey_stop,
+        commands::reveal,
+        commands::move_to_trash,
+        commands::open_privacy_settings,
+        commands::dev_options
     ])
 }
 

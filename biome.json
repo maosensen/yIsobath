@@ -71,6 +71,16 @@
 					}
 				}
 			}
+		},
+		{
+			"includes": ["src/instrument/instrument.css"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noDescendingSpecificity": "off"
+					}
+				}
+			}
 		}
 	]
 }

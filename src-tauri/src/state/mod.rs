@@ -1,22 +1,22 @@
 //! Long-lived application state.
 //!
-//! Register once at startup with `app.manage(AppState::default())` and inject
-//! into commands via `tauri::State<'_, AppState>`. Put connection pools,
-//! caches, and other resources that should outlive a single command here —
-//! never rebuild them per-invocation.
+//! Registered once at startup with `app.manage(AppState::default())` and
+//! injected into commands via `tauri::State<'_, AppState>`. The fields are
+//! `Arc`s so a command can hand them to a blocking task that outlives the
+//! borrow of the state.
 
-use std::time::Instant;
+use std::sync::atomic::{AtomicBool, AtomicU8};
+use std::sync::{Arc, Mutex};
 
+use crate::survey::Survey;
+
+#[derive(Default)]
 pub struct AppState {
-    /// When the managed state was initialized; powers the `uptime_ms` demo
-    /// command and is a handy place to anchor future long-lived resources.
-    pub started_at: Instant,
-}
-
-impl Default for AppState {
-    fn default() -> Self {
-        Self {
-            started_at: Instant::now(),
-        }
-    }
+    /// The last finished survey, kept so a move to the Trash can update the
+    /// picture without walking the disk again.
+    pub survey: Arc<Mutex<Option<Survey>>>,
+    /// 0 while a walk runs; `STOP_SHOW` / `STOP_CANCEL` to end it early.
+    pub stop: Arc<AtomicU8>,
+    /// One walk at a time.
+    pub walking: Arc<AtomicBool>,
 }

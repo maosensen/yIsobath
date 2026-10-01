@@ -1,43 +1,42 @@
-# yDesktopTemplate
+# yIsobath
 
-A production-shaped **Tauri 2 desktop app template** — the shell of the yAssets media / asset manager — with a Vite + React + TypeScript frontend.
+A disk survey instrument for the desktop. Survey the whole data volume, your
+home folder or any folder, and see it as a stepped relief: one terrace per
+folder level, an arc per byte, with lenses for file type, age and reclaimable
+space. Then reveal what you find in Finder, or move it to the Trash.
+
+Built on Tauri 2 from [yDesktopTemplate](https://github.com/maosensen/yDesktopTemplate)
+v0.2.0. The instrument comes from the Isobath section of yLookbook, where it
+surveyed a generated demo volume and, in the browser, one folder at a time.
+Here a Rust walker surveys the real disk.
+
+## What it reads, and what it never does
+
+- It reads **names, on-disk sizes and modification times**, and never opens a
+  file. Nothing leaves the computer.
+- Sizes are **allocated blocks**, as `du` counts them. A sparse disk image
+  counts what it occupies, a file evicted to iCloud counts nothing, and a file
+  with several hard links counts once.
+- A whole-disk survey walks the **data volume** (`/System/Volumes/Data` on
+  macOS) and stays on it. Other devices are skipped and counted.
+- Folders macOS will not list are **counted as unreadable**, never silently
+  dropped. Grant Full Disk Access in System Settings to survey everything.
+- It **moves to the Trash, never deletes**. Every move asks first. The
+  survey's root, system folders, account folders (`~/Library`,
+  `~/Documents`…) and anything already in the Trash are refused.
 
 ## Stack
 
 | Layer | Tech |
 |---|---|
 | Shell | Tauri 2 (Rust backend + OS WebView) |
-| Frontend | Vite 8 (Rolldown) · React 19 · TypeScript 7 (strict, native compiler) |
-| Routing | TanStack Router (file-based, `src/routes/`) |
-| Async / IPC state | TanStack Query |
-| Virtualization | TanStack Virtual |
-| Client state | Zustand |
-| Styling | Tailwind CSS v4 (OKLCH) + shadcn/ui (Base UI) |
-| Forms | react-hook-form + zod |
+| Survey | Rust: `rayon` parallel walk, `trash`, `libc::statfs` |
+| Instrument | WebGL2 relief + 2D canvas overlay, React panels (`src/instrument/`) |
+| Frontend | Vite 8 · React 19 · TypeScript 7 · TanStack Router / Query |
+| Styling | Tailwind CSS v4 + shadcn/ui (Base UI) for menus, dialogs, toasts; the instrument has its own scoped CSS |
 | Type-safe IPC | tauri-specta → generated `src/lib/bindings.ts` |
 | Lint / format | Biome (TS) · rustfmt + clippy (Rust) |
-| Tests | Vitest + Testing Library · `cargo test` |
-| Hooks | lefthook (biome + rustfmt + clippy on commit) |
-
-Baseline Tauri plugins wired: `single-instance`, `window-state`, `store`, `log`, `fs` (scoped), `dialog`, `opener`, `updater` + `process` (self-update).
-
-## Desktop shell baseline (ported from yAssets)
-
-- **Frosted-glass chrome** — transparent window + native vibrancy (`macOSPrivateApi`, `windowEffects`); chrome panels paint translucent tints (`bg-sidebar/50`), content panes stay solid (`bg-background`). Windows opts back into opaque chrome via the `windows:` Tailwind variant.
-- **Overlay titlebar** — `titleBarStyle: Overlay` + `hiddenTitle`; chrome regions use the `useWindowDrag` hook: press-and-move / long-press to drag the window, double-click to toggle maximize.
-- **Theme system** — `ThemeProvider` (localStorage) also syncs the NATIVE window materials via `window.setTheme`; `color-scheme` keeps native scrollbars/form controls in step.
-- **Scrollbars** — macOS keeps its overlay bar; Windows (WebView2) gets a thin, rounded, theme-colored thumb (`.platform-windows` styles in `index.css`).
-- **Self-update** — silent startup check (`useUpdateCheck`) raises a toast with an Install & Restart action; `src/lib/updater.ts` wraps plugin-updater/process. Fill in `plugins.updater.pubkey`/`endpoints` in `tauri.conf.json`, then set `bundle.createUpdaterArtifacts` back to `true` (it ships `false` so releases build without signing keys).
-- **Icons** — Solar Line Duotone via unplugin-icons, compiled at build time; import by semantic name from `src/components/icons.ts` only.
-- **Copy / i18n** — user-facing strings live in `src/lib/i18n/en.ts`, read through `T` from `@/lib/text`.
-- **UI playground** — the `/playground` route hosts the in-house desktop component kit: live demos of buttons, inputs, translucent dialogs/menus, context menus, toasts, and the theme switcher.
-
-## Prerequisites
-
-- Rust toolchain (`rustup`)
-- Node.js 24.15+ (24 LTS; 22.22.2+ also works — jsdom 30 and Vitest 5 rule out Node 20)
-- pnpm (`npm i -g pnpm`)
-- Platform WebView deps (macOS/Linux WebKit; Windows ships WebView2)
+| Tests | Vitest · `cargo test` |
 
 ## Getting started
 
@@ -47,45 +46,45 @@ pnpm lefthook install     # once, to enable git hooks
 pnpm tauri dev            # run the desktop app (Vite + Rust)
 ```
 
+Development switches (debug builds only):
+
+```bash
+YISOBATH_SURVEY=~/github pnpm tauri dev    # survey on launch: volume | home | /abs/path
+YISOBATH_PERF=1 pnpm tauri dev             # log frame timings every 5 s
+cd src-tauri && cargo run --release --example survey -- ~/github   # time the walk, no UI
+```
+
+Logs go to `~/Library/Logs/com.maosensen.yisobath/yIsobath.log`.
+
 Other commands:
 
 ```bash
-pnpm dev          # frontend only (browser, no native APIs)
-pnpm tauri build  # production bundle (.app/.dmg/.exe/.deb/...)
 pnpm check        # full gate: typecheck + lint + test + bindings drift + cargo fmt-check + clippy
-pnpm test         # Vitest
+pnpm tauri build  # production bundle
 ```
 
 ## Project layout
 
 ```
-src/                 # frontend (Vite + React)
-  routes/            # TanStack Router file routes
-  components/ui/     # shadcn components (edit freely)
-  lib/               # invoke wrapper, logger, query client, errors, stores
-src-tauri/           # Rust backend
-  src/commands/      # #[tauri::command]s (the IPC surface)
-  src/state/         # managed AppState
-  src/error.rs       # typed AppError (mirrored in src/lib/errors.ts)
-  capabilities/      # per-window permission sets (deny-by-default)
-.github/workflows/   # ci.yml (gate + build) · release.yml (signed cross-platform bundles)
+src/
+  instrument/        # the Isobath instrument (engine, WebGL relief, overlay, panels, rules, demo volume)
+  lib/survey.ts      # the instrument's IPC boundary
+  routes/index.tsx   # the window: the instrument, edge to edge
+src-tauri/src/
+  survey/            # walk · emit (folding) · classify (types and rule tags) · system (volume, FDA, Trash guard)
+  commands/          # survey, stop, reveal, move to Trash, privacy settings, dev options
+  examples/survey.rs # command-line survey for profiling
+docs/DESIGN.md       # what was ported, what changed, what is invented, known limits
 ```
 
 ## Conventions
 
-Read [AGENTS.md](AGENTS.md) before contributing — it documents the architecture, the
-frontend↔Rust boundary, the security red lines (deny-by-default capabilities), data-directory
-conventions, the error model, and the media/asset pipeline plan.
+Read [AGENTS.md](AGENTS.md) before contributing, and [docs/DESIGN.md](docs/DESIGN.md)
+before changing how the survey reads the disk or what the instrument shows.
 
 ## Releasing
 
-Tag a version to trigger the signed, cross-platform build matrix:
-
-```bash
-git tag v0.1.0 && git push --tags
-```
-
-Releases build without updater artifacts out of the box. To enable self-update before
-distributing: `pnpm tauri signer generate` a keypair, fill `plugins.updater` in
-`tauri.conf.json`, set `bundle.createUpdaterArtifacts` to `true`, and add the
-`TAURI_SIGNING_PRIVATE_KEY(_PASSWORD)` secrets referenced in `.github/workflows/release.yml`.
+See [.claude/release.md](.claude/release.md). The first release needs the
+GitHub repository, the updater key and the Apple signing secrets. Full Disk
+Access is tied to the signing identity, so signed builds keep it across
+updates.

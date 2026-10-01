@@ -1,0 +1,71 @@
+//! Survey a folder from the command line and print what the app would get:
+//! totals, the fold threshold, node count, payload size and timings.
+//!
+//!     cargo run --release --example survey -- ~/github
+//!     cargo run --release --example survey -- volume
+//!
+//! Handy for profiling the walk without the WebView. Prints nothing private
+//! beyond counts and the root path.
+
+use std::sync::atomic::AtomicU8;
+use std::time::Instant;
+
+use yisobath_lib::survey::{self, SurveyTarget};
+
+fn main() {
+    let arg = std::env::args().nth(1).unwrap_or_else(|| ".".into());
+    let target = match arg.as_str() {
+        "volume" => SurveyTarget::Volume,
+        "home" => SurveyTarget::Home,
+        path => SurveyTarget::Folder {
+            path: std::fs::canonicalize(path)
+                .expect("no such folder")
+                .to_string_lossy()
+                .into_owned(),
+        },
+    };
+    let (path, meta) = survey::resolve(&target).expect("cannot survey that");
+    let stop = AtomicU8::new(0);
+    let started = Instant::now();
+    let s = survey::run(&path, meta, &stop, |_| {}).expect("survey failed");
+    let walked = started.elapsed();
+    let emit_start = Instant::now();
+    let result = s.result();
+    let emitted = emit_start.elapsed();
+    let json = serde_json::to_string(&result).expect("serialize");
+    let st = &result.stats;
+    println!("root        {}", path.display());
+    println!(
+        "walk        {:.2} s · {} files · {} folders · {:.2} GB",
+        walked.as_secs_f64(),
+        st.files,
+        st.dirs,
+        st.bytes / 1e9
+    );
+    println!(
+        "skipped     {} unreadable · {} other devices · {} extra hard links",
+        st.denied, st.mounts, st.hardlinks
+    );
+    println!(
+        "fold        threshold {:.1} MB → {} nodes · emit {:.0} ms",
+        st.threshold / 1e6,
+        st.nodes,
+        emitted.as_secs_f64() * 1000.0
+    );
+    println!("payload     {:.1} MB of JSON", json.len() as f64 / 1e6);
+    let r = &result.root;
+    if let Some(kids) = &r.children {
+        let mut kids: Vec<_> = kids.iter().collect();
+        kids.sort_by(|a, b| size(b).total_cmp(&size(a)));
+        for k in kids.iter().take(8) {
+            println!("  {:>9.2} GB  {}", size(k) / 1e9, k.name);
+        }
+    }
+}
+
+fn size(n: &survey::emit::SurveyNode) -> f64 {
+    match &n.children {
+        Some(c) => c.iter().map(size).sum(),
+        None => n.bytes,
+    }
+}

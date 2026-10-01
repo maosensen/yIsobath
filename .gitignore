@@ -30,3 +30,6 @@ coverage
 *.njsproj
 *.sln
 *.sw?
+
+# CodeGraph index (local to each machine)
+.codegraph/

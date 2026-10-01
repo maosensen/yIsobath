@@ -33,7 +33,7 @@
 	},
 	"plugins": {
 		"updater": {
-			"pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDZBMjJFRjVGQjE3MDFGNzAKUldSd0gzQ3hYKzhpYXNRQ1ZjT053V2oyM0wzd0VOTDl0Q0c3VTlmWEVHK0wvYXdtaDZzZmN0c1MK",
+			"pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDg5Q0E1MUU1RkEwMEQ0MUEKUldRYTFBRDY1VkhLaWU3Um53UGV4WkVLTWhmdy9jTFIrelBVaEVUNlU1NzNmTjdKTTlTd1NSRysK",
 			"endpoints": [
 				"https://github.com/maosensen/yIsobath/releases/latest/download/latest.json"
 			]

@@ -1,0 +1,22 @@
+{
+	"$schema": "../gen/schemas/desktop-schema.json",
+	"identifier": "default",
+	"description": "Baseline capability for the main window. Deny-by-default: widen per feature, never with a broad `*:default`.",
+	"windows": ["main"],
+	"permissions": [
+		"core:default",
+		"core:window:allow-start-dragging",
+		"core:window:allow-toggle-maximize",
+		"core:window:allow-set-theme",
+		"dialog:default",
+		"opener:allow-open-url",
+		"store:default",
+		"log:default",
+		"updater:default",
+		"process:allow-restart",
+		{
+			"identifier": "fs:scope",
+			"allow": [{ "path": "$APPDATA/**" }, { "path": "$APPCACHE/**" }]
+		}
+	]
+}

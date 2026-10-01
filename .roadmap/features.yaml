@@ -1,0 +1,310 @@
+# .roadmap/features.yaml — 功能台账
+# 本文件是该项目功能状态的唯一事实源;yPulse 定期采集(schema v1,见 yPulse 仓库 docs/feature-ledger.md)。
+# 约定:完成一个功能 = 同一次提交里更新对应条目(置 done + completedAt)。
+#
+# 初稿由功能考古生成(2026-07-28;modules 自 readiness DB 迁移,原样保留),待人批改。
+
+project: maosensen/yDesktopTemplate
+track: oss
+launchedAt: null
+areas: [窗口外壳, 界面与主题, IPC 与安全, 应用骨架, 更新与发布, 工程化]
+
+modules:
+  - id: readme-hero
+    title: README 首屏:一句话价值 + 视觉
+    tier: required
+    status: todo
+    note: 截图或 GIF 放在首屏。这就是全部的第一印象。
+  - id: runnable-demo
+    title: 能跑起来的 Demo
+    tier: required
+    status: todo
+    note: 在线试用链接,或一条在干净机器上就能成功的命令。
+  - id: quickstart-5min
+    title: 快速上手 5 分钟内成功
+    tier: required
+    status: todo
+    note: 拿全新 clone 掐表走一遍。每多一步都会劝退一批人。
+  - id: license
+    title: LICENSE
+    tier: required
+    status: todo
+  - id: designed-facade
+    title: 门面看得出是设计过的
+    tier: required
+    status: todo
+    note: 落地页,或真正做过样式的 README。「惊艳」本身就是目的。
+  - id: tagged-release
+    title: 打了 tag 的正式发布 + CHANGELOG
+    tier: required
+    status: done
+    completedAt: 2026-07-10
+    note: 一个没有 release 的仓库,读起来就是弃坑了。v0.1.0 起有 tag + GitHub Release + CHANGELOG(对账 2026-07-28 按事实补记)。
+  - id: contributing-guide
+    title: 贡献指南 + Issue 模板
+    tier: required
+    status: todo
+    note: 别让第一个外部贡献者卡在猜规则上。
+  - id: launch-assets
+    title: 首发素材已备好
+    tier: required
+    status: todo
+    note: 封面图 + 介绍文案,在发布当天之前就写完。
+  - id: actually-announced
+    title: 真的对外发出去了
+    tier: required
+    status: todo
+    note: 发到目标用户所在的地方。不推广 = 项目不存在。
+  - id: docs-site
+    title: 文档站
+    tier: enhancement
+    status: todo
+  - id: i18n-readme
+    title: 多语言 README
+    tier: enhancement
+    status: todo
+  - id: ci-badges
+    title: CI + 测试徽章
+    tier: enhancement
+    status: todo
+  - id: example-project
+    title: 示例项目
+    tier: enhancement
+    status: todo
+  - id: community-channel
+    title: 社区频道
+    tier: enhancement
+    status: todo
+  - id: code-signing
+    title: 代码签名 + 公证
+    tier: required
+    status: todo
+    note: 未签名的桌面包会弹一个没人敢点「继续」的警告。
+  - id: platform-installers
+    title: 各目标平台的安装包
+    tier: required
+    status: todo
+  - id: auto-update-channel
+    title: 自动更新通道
+    tier: enhancement
+    status: todo
+  - id: crash-reporting
+    title: 崩溃上报
+    tier: enhancement
+    status: todo
+
+features:
+  # —— 窗口外壳 ——
+  - id: frosted-glass-shell
+    title: 毛玻璃窗口外壳
+    area: 窗口外壳
+    status: done
+    completedAt: "2026-07-09"
+    shippedIn: v0.1.0
+    note: "透明窗口 + 原生 vibrancy(macOSPrivateApi / windowEffects);chrome 面板半透明、内容区保持不透明;Windows 经 windows: 变体回退为不透明 chrome。"
+  - id: overlay-titlebar
+    title: 叠加式标题栏与窗口手势
+    area: 窗口外壳
+    status: done
+    completedAt: "2026-07-09"
+    shippedIn: v0.1.0
+    note: titleBarStyle Overlay + hiddenTitle;useWindowDrag 提供按住拖动与双击切换最大化。
+  - id: window-state-restore
+    title: 窗口位置与尺寸记忆
+    area: 窗口外壳
+    status: done
+    completedAt: "2026-07-02"
+    shippedIn: v0.1.0
+    note: window-state 插件;窗口先隐藏、恢复完位置尺寸再显示,避免启动时的重排闪烁。
+  - id: single-instance-guard
+    title: 单实例守护
+    area: 窗口外壳
+    status: done
+    completedAt: "2026-07-02"
+    shippedIn: v0.1.0
+    note: 二次启动时聚焦已有主窗口而不是再开一个进程。
+  - id: platform-scrollbars
+    title: 分平台滚动条样式
+    area: 窗口外壳
+    status: done
+    completedAt: "2026-07-09"
+    shippedIn: v0.1.0
+    note: macOS 保留原生 overlay 滚动条;Windows(WebView2)使用细圆角、跟随主题色的 thumb。
+
+  # —— 界面与主题 ——
+  - id: theme-system
+    title: 主题系统
+    area: 界面与主题
+    status: done
+    completedAt: "2026-07-02"
+    shippedIn: v0.1.0
+    note: light / dark / system,localStorage 持久化;0.1.0 的 shell 移植后同时同步原生窗口材质(window.setTheme)与 color-scheme。
+  - id: desktop-ui-kit
+    title: 内置桌面组件库
+    area: 界面与主题
+    status: done
+    completedAt: "2026-07-02"
+    shippedIn: v0.1.0
+    note: shadcn / Base UI 全量组件随模板携带、可自由修改;对话框、菜单等做了半透明桌面适配。
+  - id: ui-playground
+    title: UI Playground 演示页
+    area: 界面与主题
+    status: done
+    completedAt: "2026-07-09"
+    shippedIn: v0.1.0
+    note: /playground 路由,演示按钮、输入、半透明对话框/菜单、右键菜单、toast、空状态与主题切换。
+  - id: icon-registry
+    title: 语义化图标体系
+    area: 界面与主题
+    status: done
+    completedAt: "2026-07-09"
+    shippedIn: v0.1.0
+    note: Solar Line Duotone 经 unplugin-icons 编译期内联;组件只从 components/icons.ts 按语义名导入。
+  - id: error-fallback-page
+    title: 全局错误兜底页
+    area: 界面与主题
+    status: done
+    completedAt: "2026-07-09"
+    shippedIn: v0.1.0
+    note: 路由级 error boundary 替换 TanStack Router 默认死胡同页,提供回首页 / 重载 WebView 出口;附共享 EmptyState 组件。
+
+  # —— IPC 与安全 ——
+  - id: typed-ipc
+    title: 类型安全 IPC 绑定
+    area: IPC 与安全
+    status: done
+    completedAt: "2026-07-02"
+    shippedIn: v0.1.0
+    note: tauri-specta 从 Rust 命令生成 bindings.ts;export_bindings 测试 + check:bindings(CI 同跑)防漂移;invoke 包装统一记录 IPC 失败日志。
+  - id: typed-error-model
+    title: 类型化错误模型
+    area: IPC 与安全
+    status: done
+    completedAt: "2026-07-02"
+    shippedIn: v0.1.0
+    note: Rust AppError(稳定 code + detail)跨 IPC 映射为前端 CommandError,UI 按 code 分支而非解析字符串。
+  - id: demo-commands
+    title: 示范 IPC 命令集
+    area: IPC 与安全
+    status: done
+    completedAt: "2026-07-02"
+    shippedIn: v0.1.0
+    note: greet / uptime_ms(托管 AppState 注入)/ list_dir(io 错误映射),覆盖三种命令写法范式。
+  - id: capability-security
+    title: 权限最小化基线
+    area: IPC 与安全
+    status: done
+    completedAt: "2026-07-02"
+    shippedIn: v0.1.0
+    note: deny-by-default capabilities,逐功能放行;fs 仅限 $APPDATA / $APPCACHE;严格 CSP。
+  - id: native-dialogs
+    title: 原生文件对话框封装
+    area: IPC 与安全
+    status: done
+    completedAt: "2026-07-09"
+    shippedIn: v0.1.0
+    note: dialogs.ts 提供目录 / 多文件选择器,是 dialog 插件的唯一导入点。
+  - id: external-opener
+    title: 外链安全打开
+    area: IPC 与安全
+    status: done
+    completedAt: "2026-07-09"
+    shippedIn: v0.1.0
+    note: opener.ts 是前端打开外部 URL 的唯一出口;失败记日志不抛错。
+
+  # —— 应用骨架 ——
+  - id: file-based-routing
+    title: 文件式路由
+    area: 应用骨架
+    status: done
+    completedAt: "2026-07-02"
+    shippedIn: v0.1.0
+    note: TanStack Router 文件路由 + routeTree 生成;react-query QueryClient 注入路由上下文。
+  - id: client-state-scaffold
+    title: 客户端状态脚手架
+    area: 应用骨架
+    status: done
+    completedAt: "2026-07-02"
+    shippedIn: v0.1.0
+    note: Zustand example-store 附带测试;另含 use-debounced-value / use-element-width 等通用 hooks。
+  - id: settings-store-wiring
+    title: 偏好存储接线
+    area: 应用骨架
+    status: done
+    completedAt: "2026-07-02"
+    shippedIn: v0.1.0
+    note: tauri-plugin-store 已注册并授权(store:default);尚无前端封装与调用点,属"接好待用"。
+  - id: i18n-layer
+    title: 多语言文案层
+    area: 应用骨架
+    status: done
+    completedAt: "2026-07-09"
+    shippedIn: v0.1.0
+    note: en.ts 按域分组为 Messages 契约,经 T 代理按当前 locale 解析;新增语言 = 克隆目录并注册。尚无 UI 语言切换器(setLocale 不触发重渲染)。
+  - id: structured-logging
+    title: 结构化日志
+    area: 应用骨架
+    status: done
+    completedAt: "2026-07-02"
+    shippedIn: v0.1.0
+    note: 前端 pino(WebView console 结构化对象,VITE_LOG_LEVEL 可调);Rust 侧 tauri-plugin-log。前端日志落盘见 frontend-log-file。
+  - id: frontend-log-file
+    title: 前端日志落盘
+    area: 应用骨架
+    status: done
+    completedAt: "2026-10-01"
+    shippedIn: v0.2.0
+    note: 前端 info 以上经 pino browser.transmit → src/lib/log-file.ts 转发进 tauri-plugin-log,与 Rust 日志同落 stdout + app 日志目录;结构化上下文以 JSON 拼进消息、Error 转 name + message、纯浏览器 pnpm dev 下自动关闭。正式版无 devtools,前端报错只能在这里留痕。
+
+  # —— 更新与发布 ——
+  - id: self-update
+    title: 自动更新接线
+    area: 更新与发布
+    status: done
+    completedAt: "2026-07-09"
+    shippedIn: v0.1.0
+    note: 启动静默检查(useUpdateCheck)→ Install & Restart toast;签名产物默认关闭(createUpdaterArtifacts:false),填 pubkey / endpoint 即可启用。
+  - id: release-pipeline
+    title: 四平台签名发布流水线
+    area: 更新与发布
+    status: done
+    completedAt: "2026-07-09"
+    shippedIn: v0.1.0
+    note: tag 触发;先建单一 draft Release,matrix(macOS arm64 / x64、Linux、Windows)向同一 releaseId 上传,避免产物散落多个 draft。
+  - id: whats-new-page
+    title: 应用内 What's New 页
+    area: 更新与发布
+    status: done
+    completedAt: "2026-07-10"
+    shippedIn: v0.1.0
+    note: /changelog 时间线渲染类型化、分 locale 的精编 changelog 模块(与开发者 CHANGELOG.md 分工);当前安装版本标 Current。
+
+  # —— 工程化 ——
+  - id: quality-gate
+    title: 一体化质量门禁
+    area: 工程化
+    status: done
+    completedAt: "2026-07-02"
+    shippedIn: v0.1.0
+    note: pnpm check = typecheck(含 Vite / Vitest 配置文件)+ biome + vitest + bindings 漂移检查 + rustfmt + clippy;CI 跑同一门禁并额外跑 pnpm build;lefthook 在提交时对暂存文件跑 biome / rustfmt / clippy。
+  - id: test-scaffold
+    title: 双端测试脚手架
+    area: 工程化
+    status: done
+    completedAt: "2026-07-02"
+    shippedIn: v0.1.0
+    note: Vitest + Testing Library(jsdom)与 cargo test;附 hook / store 示例测试。
+  - id: feature-ledger
+    title: 功能台账
+    area: 工程化
+    status: done
+    completedAt: "2026-07-28"
+    shippedIn: v0.1.1
+    note: .roadmap/features.yaml(schema v1)作为功能状态唯一事实源;发版时逐条核对并回填 shippedIn,由 yPulse 采集。
+  - id: template-rebrand
+    title: 模板命名占位符化
+    area: 工程化
+    status: done
+    completedAt: "2026-10-01"
+    shippedIn: v0.2.0
+    note: 命名与仓库对齐:identifier com.maosensen.ydesktoptemplate(原先与 yAssets.app 撞车)、productName / 窗口标题 yDesktopTemplate、package name 与 Cargo crate ydesktoptemplate(lib ydesktoptemplate_lib),README / AGENTS 开篇改称模板。

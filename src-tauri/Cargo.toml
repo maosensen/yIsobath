@@ -1,0 +1,45 @@
+[package]
+name = "ydesktoptemplate"
+version = "0.2.0"
+description = "yDesktopTemplate — a production-shaped Tauri 2 + React desktop app template"
+authors = ["maosensen"]
+edition = "2024"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+# The `_lib` suffix may seem redundant but it is necessary
+# to make the lib name unique and wouldn't conflict with the bin name.
+# This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
+name = "ydesktoptemplate_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+# macos-private-api: transparent WebView background so the native window
+# vibrancy (frosted glass) shows through — see tauri.conf `macOSPrivateApi`.
+tauri = { version = "2", features = ["macos-private-api"] }
+tauri-plugin-opener = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+# Type-safe IPC: generate src/lib/bindings.ts from the Rust commands.
+# v2 is RC and tightly version-coupled — keep these pinned with `=`.
+specta = { version = "=2.0.0-rc.25", features = ["derive"] }
+specta-typescript = "=0.0.12"
+tauri-specta = { version = "=2.0.0-rc.25", features = ["derive", "typescript"] }
+tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"
+tauri-plugin-log = "2"
+tauri-plugin-store = "2"
+
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-single-instance = "2"
+tauri-plugin-window-state = "2"
+# Self-update: signed artifacts from GitHub Releases (see
+# .github/workflows/release.yml); `process` powers the relaunch.
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
+

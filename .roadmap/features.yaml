@@ -68,7 +68,7 @@ features:
       点进折叠的块(或选中按回车),expand_folder 从 Rust 内存里的完整树把它按自己的尺度重折(像单独测了它,
       2 万个节点的预算),整份测量重发、replaceVolume 换卷后钻进去,不重新走盘。展开过的目录记在 Survey.expanded
       (名字树),移到废纸篓之后仍展开;只给展开后不止一块的目录(expandable)。没做「只发子树、局部替换」:
-      ~/github 上重新折叠 15 ms、4.4 MB JSON,大卷上界面那头的耗时待实测。
+      ~/github(3.8 万个节点)上实测从回车到换卷,dev 构建 234 ms、推算正式版约 75 ms,够快。
   - id: survey-snapshots
     title: 测量快照与两次对比(上次以来哪里涨了)
     area: 测量

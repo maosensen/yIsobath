@@ -72,13 +72,16 @@ fn main() {
         assert!(s.expand(&path.join(parts.join("/"))));
         let after = s.result();
         let emitted = started.elapsed();
+        let started = Instant::now();
         let json = serde_json::to_string(&after).expect("serialize");
+        let serialized = started.elapsed();
         println!(
-            "expand      {} ({:.1} MB) → {} nodes · emit {:.0} ms · {:.1} MB of JSON",
+            "expand      {} ({:.1} MB) → {} nodes · emit {:.0} ms · serialize {:.0} ms · {:.1} MB of JSON",
             parts.join("/"),
             bytes / 1e6,
             after.stats.nodes,
             emitted.as_secs_f64() * 1000.0,
+            serialized.as_secs_f64() * 1000.0,
             json.len() as f64 / 1e6
         );
     }

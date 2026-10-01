@@ -175,7 +175,10 @@ export function drawOverlay(ctx: CanvasRenderingContext2D, m: OverlayModel) {
 		const r = m.readout;
 		const size = Math.max(22, Math.min(62, rx * 0.4));
 		font(ctx, `200 ${size}px ${fonts.display}`, -0.02 * size);
-		const vw = ctx.measureText(r.value).width;
+		const vm = ctx.measureText(r.value);
+		const vw = vm.width;
+		const base = y + size * 0.32;
+		const valueTop = base - (vm.actualBoundingBoxAscent || size * 0.72);
 		mono(10.5, 400, 0.6);
 		const uw = ctx.measureText(r.unit).width;
 		const total = vw + 5 + uw;
@@ -183,14 +186,29 @@ export function drawOverlay(ctx: CanvasRenderingContext2D, m: OverlayModel) {
 		ctx.textAlign = "left";
 		font(ctx, `200 ${size}px ${fonts.display}`, -0.02 * size);
 		ctx.fillStyle = INK;
-		ctx.fillText(r.value, vx, y + size * 0.32);
+		ctx.fillText(r.value, vx, base);
 		mono(10.5, 500, 0.8);
 		ctx.fillStyle = ICE;
-		ctx.fillText(r.unit, vx + vw + 5, y + size * 0.32 - size * 0.42);
+		const unitBase = base - size * 0.42;
+		const unitTop =
+			unitBase - (ctx.measureText(r.unit).actualBoundingBoxAscent || 7.5 * ui);
+		ctx.fillText(r.unit, vx + vw + 5, unitBase);
 		ctx.textAlign = "center";
-		mono(10, 500, 1.6);
+		// 名字在数字与单位上方。按字号比例放的位置在小轮毂(平面视图)里会贴住数字、被单位压住,
+		// 所以至少隔开 3 px;太长先收字距,还放不下再从中间截断
+		const nameBase = Math.min(
+			y - size * 0.44,
+			Math.min(valueTop, unitTop) - 3 * ui,
+		);
+		const nameMax = rx * 1.75;
+		let tracking = 1.6;
+		mono(10, 500, tracking);
+		while (tracking > 0 && ctx.measureText(r.name).width > nameMax) {
+			tracking = Math.max(0, tracking - 0.8);
+			mono(10, 500, tracking);
+		}
 		ctx.fillStyle = r.accent ? AMBER : ICE;
-		ctx.fillText(fitText(ctx, r.name, rx * 1.75), x, y - size * 0.44);
+		ctx.fillText(fitText(ctx, r.name, nameMax), x, nameBase);
 		mono(10, 400, 0.4);
 		ctx.fillStyle = INK;
 		ctx.fillText(r.sub, x, y + size * 0.32 + 15 * ui);

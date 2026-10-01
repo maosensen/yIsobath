@@ -147,7 +147,9 @@ features:
     title: 自动更新
     area: 更新与发布
     status: todo
-    note: 接线随模板而来,pubkey 还是占位(endpoint 已指向 maosensen/yIsobath);第一次发版时启用。
+    note: |
+      接线随模板而来;2026-10-01 公钥已填进 tauri.conf.json、createUpdaterArtifacts 已开、两个签名 secrets 已配,
+      仓库已公开(endpoint 是 maosensen/yIsobath 的 releases/latest)。第一次发版后才有 latest.json 可拿。
   - id: release-pipeline
     title: 四平台发布流水线
     area: 更新与发布

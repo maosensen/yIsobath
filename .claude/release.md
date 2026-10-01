@@ -40,5 +40,5 @@
 
 ## 本项目特有注意事项
 
-- bundle identifier `com.maosensen.yisobath`,productName `yIsobath`,Cargo crate `yisobath`(lib `yisobath_lib`),dev 端口 4387(HMR 4388)。
+- bundle identifier `com.maosensen.yisobath`,productName `yIsobath`,Cargo crate `yisobath`(lib `yisobath_lib`),dev 端口 4377(HMR 4378;矩阵端口登记见 yPulse `docs/site-topology.md`)。
 - 日志在 `~/Library/Logs/com.maosensen.yisobath/yIsobath.log`;dev 构建里 `YISOBATH_PERF=1` 会每 5 秒写一条帧时间。

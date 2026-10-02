@@ -11,6 +11,7 @@
  * 可回收空间规则归属(`claim`)和子树里能拿回多少(`reclaim`)。
  */
 
+import { T } from "@/lib/text";
 import {
 	ISO_AGE_BUCKET_DAYS,
 	ISO_AGE_BUCKETS,
@@ -370,6 +371,21 @@ export class Volume {
 
 	isAgg(i: number) {
 		return (this.flags[i] & F_AGG) !== 0;
+	}
+
+	/**
+	 * 显示用的名字。零散文件那一块的名字(「1,284 files」)是 Rust 和演示生成器按英文拼的,
+	 * 这里按当前语言重写;`name` 本身不动,换卷后找回焦点靠的就是它。
+	 */
+	label(i: number) {
+		const n = this.name[i];
+		if (!this.isAgg(i)) return n;
+		const m = /^([\d,]+) (files?|folders?)$/.exec(n);
+		if (!m) return n;
+		const count = Number(m[1].replace(/,/g, ""));
+		return m[2].startsWith("file")
+			? T.iso.loose.files(m[1], count)
+			: T.iso.loose.folders(m[1], count);
 	}
 
 	/** 能不能钻进去:有孩子的目录。 */

@@ -3,6 +3,8 @@
 
 use std::path::{Path, PathBuf};
 
+use crate::error::Refusal;
+
 /// On macOS the user's files live on the data volume, firmlinked into `/`.
 /// Walking `/` would either skip them (another device) or count them twice, so
 /// a "whole disk" survey walks the data volume itself.
@@ -176,16 +178,16 @@ pub fn firmlinked(path: &Path) -> PathBuf {
 
 /// Why `path` may not go to the Trash, or `None` if it may. `root` is the
 /// surveyed folder; nothing outside it, and not the root itself, is touched.
-pub fn trash_refusal(path: &Path, root: &Path, home: Option<&Path>) -> Option<&'static str> {
+pub fn trash_refusal(path: &Path, root: &Path, home: Option<&Path>) -> Option<Refusal> {
     if !path.is_absolute() || path.components().any(|c| c.as_os_str() == "..") {
-        return Some("not an absolute path");
+        return Some(Refusal::NotAbsolute);
     }
     if !path.starts_with(root) || path == root {
-        return Some("outside the surveyed folder");
+        return Some(Refusal::OutsideSurvey);
     }
     let shown = firmlinked(path);
     if protected(home).contains(&shown) {
-        return Some("a folder the system or your account depends on");
+        return Some(Refusal::Protected);
     }
     let sealed = [
         "/System",
@@ -196,12 +198,12 @@ pub fn trash_refusal(path: &Path, root: &Path, home: Option<&Path>) -> Option<&'
         "/usr/sbin",
     ];
     if sealed.iter().any(|s| shown.starts_with(s)) {
-        return Some("part of the system");
+        return Some(Refusal::System);
     }
     if let Some(h) = home
         && shown.starts_with(h.join(".Trash"))
     {
-        return Some("already in the Trash");
+        return Some(Refusal::InTrash);
     }
     None
 }
@@ -216,13 +218,16 @@ mod tests {
         let root = Path::new("/Users/ada");
         let ok = |p: &str| trash_refusal(Path::new(p), root, Some(home));
         assert_eq!(ok("/Users/ada/github/app/node_modules"), None);
-        assert!(ok("/Users/ada").is_some(), "the root itself");
-        assert!(ok("/Users/ada/Library").is_some());
-        assert!(ok("/Users/ada/Documents").is_some());
+        assert_eq!(ok("/Users/ada"), Some(Refusal::OutsideSurvey), "the root");
+        assert_eq!(ok("/Users/ada/Library"), Some(Refusal::Protected));
+        assert_eq!(ok("/Users/ada/Documents"), Some(Refusal::Protected));
         assert_eq!(ok("/Users/ada/Library/Caches/Homebrew"), None);
-        assert!(ok("/Users/ada/.Trash/old.dmg").is_some());
-        assert!(ok("/Users/bob/thing").is_some(), "outside the root");
-        assert!(ok("/Users/ada/github/../Library").is_some());
+        assert_eq!(ok("/Users/ada/.Trash/old.dmg"), Some(Refusal::InTrash));
+        assert_eq!(ok("/Users/bob/thing"), Some(Refusal::OutsideSurvey));
+        assert_eq!(
+            ok("/Users/ada/github/../Library"),
+            Some(Refusal::NotAbsolute)
+        );
     }
 
     #[cfg(target_os = "macos")]

@@ -17,7 +17,7 @@ use tauri::Manager;
 use tauri::ipc::Channel;
 use tauri_plugin_opener::OpenerExt;
 
-use crate::error::{AppError, AppResult};
+use crate::error::{AppError, AppResult, Refusal};
 use crate::state::AppState;
 use crate::survey::walk::{STOP_CANCEL, STOP_SHOW};
 use crate::survey::{
@@ -144,10 +144,10 @@ pub fn survey_stop(cancel: bool, state: tauri::State<'_, AppState>) {
 fn within_survey(state: &AppState, path: &Path) -> AppResult<PathBuf> {
     let slot = state.survey.lock().map_err(|_| AppError::Internal)?;
     let Some(s) = slot.as_ref() else {
-        return Err(AppError::Refused("nothing has been surveyed yet".into()));
+        return Err(AppError::Refused(Refusal::NoSurvey));
     };
     if !path.starts_with(&s.root) {
-        return Err(AppError::Refused("outside the surveyed folder".into()));
+        return Err(AppError::Refused(Refusal::OutsideSurvey));
     }
     Ok(s.root.clone())
 }
@@ -189,10 +189,7 @@ pub async fn expand_folder(
             return Err(AppError::Internal);
         };
         if !s.expand(&path) {
-            return Err(AppError::NotFound(format!(
-                "{} is not a folder of this survey",
-                path.display()
-            )));
+            return Err(AppError::NotFound(path.display().to_string()));
         }
         Ok(s.result())
     })
@@ -216,7 +213,7 @@ pub async fn move_to_trash(
     let root = within_survey(&state, &path)?;
     let home = system::home_dir();
     if let Some(why) = system::trash_refusal(&path, &root, home.as_deref()) {
-        return Err(AppError::Refused(why.into()));
+        return Err(AppError::Refused(why));
     }
     let slot = state.survey.clone();
     tauri::async_runtime::spawn_blocking(move || {
@@ -238,10 +235,7 @@ pub async fn move_to_trash(
 
 fn trash_item(path: &Path) -> AppResult<()> {
     if std::fs::symlink_metadata(path).is_err() {
-        return Err(AppError::NotFound(format!(
-            "{} is no longer there",
-            path.display()
-        )));
+        return Err(AppError::NotFound(path.display().to_string()));
     }
     let ctx = trash_context();
     ctx.delete(path).map_err(|e| {

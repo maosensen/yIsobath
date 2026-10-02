@@ -1,0 +1,367 @@
+/**
+ * 简体中文。形状与 `en.ts` 完全一致(`Messages`);macOS 的叫法照系统:
+ * 访达、废纸篓、文稿、完全磁盘访问权限。
+ */
+
+import type { Messages } from "./index";
+
+export const zh: Messages = {
+	common: {
+		cancel: "取消",
+		confirm: "确认",
+		close: "关闭",
+		save: "保存",
+		delete: "删除",
+		loading: "正在载入…",
+	},
+	theme: {
+		light: "浅色",
+		dark: "深色",
+		system: "跟随系统",
+	},
+	language: {
+		label: "语言",
+	},
+	survey: {
+		label: "测量",
+		wholeDisk: "整块磁盘",
+		home: "个人文件夹",
+		folder: "选择文件夹…",
+		pickTitle: "选择要测量的文件夹",
+		again: "再测一次",
+		demoVolume: "回到演示卷",
+		surveying: "正在测量",
+		stopShow: "停下并显示",
+		privacyNote: "只读取名称、大小和日期，任何内容都不会离开这台电脑。",
+		stopped: "测量提前停止",
+		unreadable: (n) => `${n} 个无法读取`,
+		unreadableHint: "macOS 不允许 yIsobath 列出的文件夹，按空文件夹计算。",
+		rightClick: "右键可在访达中显示或移到废纸篓",
+	},
+	access: {
+		kicker: "测量之前",
+		missing: "yIsobath 没有“完全磁盘访问权限”。",
+		body: "读取桌面、文稿和下载之前，macOS 会先询问；属于其他应用的文件夹会被跳过，计为无法读取。",
+		open: "打开隐私设置",
+		anyway: "仍然测量",
+		restart: "打开权限后，请退出并重新打开 yIsobath。",
+		grant: "授予权限…",
+	},
+	item: {
+		reveal: "在访达中显示",
+		copyPath: "复制路径",
+		trash: "移到废纸篓…",
+		copied: "已复制路径",
+		loose: "零散文件：操作会作用于它们所在的文件夹",
+		expandFailed: "无法打开这个文件夹",
+		demo: "演示卷里没有真实的文件",
+	},
+	change: {
+		title: "自上次测量以来",
+		since: (when) => `自 ${when} 以来`,
+		dateFormat: "M月d日 HH:mm",
+		first: "第一次测量这个地方。下次测量时会显示哪里变大了。",
+		partial: "这次测量提前停止了，所以不和上一次比较。",
+		net: (was, now, ago) => `自上次测量（${ago}）以来：${was} → ${now}。`,
+		none: "没有哪个文件夹增长得足够明显。",
+		new: "新",
+	},
+	trash: {
+		title: (name) => `将“${name}”移到废纸篓？`,
+		size: (bytes, files) => `${bytes} · ${files} 个文件`,
+		rule: (title, risk) => `${title} · ${risk}`,
+		space: "清倒废纸篓之后，空间才会真正腾出来。",
+		confirm: "移到废纸篓",
+		working: "正在移动…",
+		done: (name) => `已将“${name}”移到废纸篓`,
+		doneHint: "在访达中清倒废纸篓即可收回空间。",
+		failed: "无法移到废纸篓",
+	},
+	errors: {
+		busy: "已经有一次测量正在进行。",
+		internal: "出了点问题。",
+		notFound: (what) => `找不到：${what}`,
+		refused: {
+			"no-survey": "还没有测量任何地方。",
+			"not-absolute": "不是完整的路径。",
+			"outside-survey": "不在测量的文件夹之内。",
+			protected: "这是系统或你的账户依赖的文件夹。",
+			system: "这是系统的一部分。",
+			"in-trash": "已经在废纸篓里了。",
+		},
+	},
+	updates: {
+		available: (version) => `新版本 ${version} 可用`,
+		installAction: "安装并重启",
+		installing: "正在下载更新…",
+		failed: "更新失败，请稍后再试",
+		upToDate: "已是最新版本",
+	},
+	errorPage: {
+		title: "出错了",
+		hint: "界面遇到了意外错误。回到首页即可继续；如果反复出现，请重新载入应用。",
+		goHome: "回到首页",
+		reload: "重新载入",
+		detailsLabel: "错误详情",
+	},
+	changelog: {
+		title: "新功能",
+		subtitle: "每个版本的亮点",
+		back: "返回",
+		current: "当前版本",
+		kindNew: "新增",
+		kindImproved: "改进",
+		kindFixed: "修复",
+	},
+
+	iso: {
+		tag: "磁盘测量",
+		role: { data: "数据", home: "个人文件夹", folder: "文件夹" },
+		phase: {
+			boot: "校准中",
+			survey: "测量中",
+			complete: "测量完成",
+		},
+		lens: {
+			label: "读法",
+			survey: "测量",
+			type: "类型",
+			age: "年龄",
+			reclaim: "可回收",
+		},
+		view: { label: "视角", orbit: "环绕", plan: "俯视" },
+		legend: {
+			today: "今天",
+			sixYears: "6 年以上",
+			ageNote: "各文件夹按字节计的年龄中位数",
+			none: "无",
+			all: "全部",
+			reclaimNote: "各文件夹中可回收的比例",
+			folder: "文件夹",
+			file: "文件",
+			loose: "零散文件",
+			lines: "1 条线 = 2,000 个文件",
+		},
+		chip: {
+			demoTitle: (host, when) => `演示卷，${when} 记录于 ${host}`,
+			demo: "演示",
+			free: (bytes) => `可用 ${bytes}`,
+			folder: (bytes, role) => `${bytes} · ${role}`,
+		},
+		scanRead: (files, folders, bytes) =>
+			`${files} 个文件 · ${folders} 个文件夹 · ${bytes}`,
+		statusRead: (clock, files) => `${clock} · ${files} 个文件`,
+		skip: "跳过",
+		replay: "重放",
+		zoomOut: "缩小",
+		zoomIn: "放大",
+		resetCamera: "重置视角",
+		hint: "点击台阶进入 · 点击中心回到上一级 · 拖动以环绕",
+		telemetry: { frame: "帧", sectors: "扇区", buffer: "缓冲" },
+		noWebgl: "这个仪器要用 WebGL2 来绘制，但这台电脑的 WebView 没有提供。",
+		relief:
+			"磁盘浮雕。方向键在文件夹之间移动，回车进入文件夹，Esc 回到上一级。拖动以环绕。",
+		announce: (name, bytes, share, of) => `${name}，${bytes}，${of}的 ${share}`,
+		announceOpen: "按回车打开。",
+
+		actions: {
+			survey: "这次测量",
+			folder: "这个文件夹",
+			finder: "访达",
+			copyPath: "复制路径",
+			trash: "废纸篓…",
+			trashTitle: "移到废纸篓（⌘⌫）",
+		},
+		focus: {
+			title: "焦点",
+			share: "占比",
+			files: "文件",
+			folders: "文件夹",
+			age: "年龄",
+			reclaim: "可回收",
+			mostly: "主要",
+			composition: "构成",
+			listing: "列出中…",
+			largest: "里面最大的",
+			items: (n) => `${n} 项`,
+		},
+		search: {
+			label: "按名称查找",
+			waiting: "测量完成后可查找",
+			none: "没有匹配的名称",
+			matches: () => "{b} 个匹配",
+		},
+		rate: {
+			unit: "条目 / 秒",
+			peak: (n) => `峰值 ${n}`,
+		},
+		log: {
+			title: "测量",
+			calibrating: "校准中",
+			listed: "已列出",
+			files: "文件",
+			folders: "文件夹",
+			log: "测量日志",
+			replaying: (name, when) => `正在重放 ${when} 对 ${name} 的一次测量。`,
+			surveyed: (root, when) =>
+				`${when} 测量了 ${root}，只读取了名称、大小和日期。`,
+			sweep: "文件夹列出时逐个升起；扫描按目录顺序进行，大的在前。",
+		},
+		findings: {
+			label: "可回收空间",
+			title: "可回收",
+			count: (n) => `${n} 项`,
+			inUse: (share, used, freeAfter) =>
+				`占已用 ${used} 的 ${share} · 清理后可用：${freeAfter}`,
+			ofVolume: (share, used, freeAfter) =>
+				`占已测 ${used} 的 ${share} · 清理后可用：${freeAfter}`,
+			ofFolder: (share, used, root) => `占 ${root} 里 ${used} 的 ${share}`,
+			none: "这里没有符合规则的内容：没有依赖目录、构建产物、缓存、安装包、重复文件，也没有两年没动过的大文件。",
+			places: (n) => `${n} 处`,
+			copy: "复制",
+			copied: "已复制",
+			more: (n) => `还有 ${n} 处`,
+			counted: (pct, gross) => `按 ${gross} 的 ${pct}% 计算。`,
+		},
+		strata: {
+			title: "年龄地层",
+			scale: "最后修改 · √ 字节",
+			inSelection: (share, of) => `选中范围 {b} · ${of}的 ${share}`,
+			untouched: (share, of) => `一年没动过 {b} · ${of}的 ${share}`,
+			survey: "本次测量",
+			volume: "整卷",
+			clear: "清除",
+			slider: "按最后修改时间筛选。拖动以选择范围。",
+			range: (from, to) => `${from} 到 ${to} 个季度前`,
+			noFilter: "未筛选",
+			older: "更早",
+		},
+		crumbs: "路径",
+		loose: {
+			files: (n) => `${n} 个文件`,
+			folders: (n) => `${n} 个文件夹`,
+		},
+
+		hub: {
+			calibrating: "校准中",
+			surveying: "测量中",
+			files: (n) => `${n} 个文件`,
+			ofThe: (share, folder) => `${folder ? "本次测量" : "整卷"}的 ${share}`,
+			of: (share, folder) => `${folder ? "本次测量" : "整卷"}的 ${share}`,
+			ofView: (share) => `视野的 ${share}`,
+			filesFolders: (files, folders) => `${files} 个文件 · ${folders} 个文件夹`,
+		},
+		callout: {
+			loose: "零散文件",
+			folder: "文件夹",
+			folderEnter: "文件夹 · 点击进入",
+			file: "文件",
+			reclaimable: (rule) => `可回收 · ${rule}`,
+			modified: (age) => `${age}前修改`,
+			modifiedToday: "今天修改过",
+		},
+	},
+	types: {
+		vid: "视频",
+		img: "图片",
+		aud: "音频",
+		mdl: "模型权重",
+		src: "代码与依赖",
+		bin: "应用与构建产物",
+		vmi: "映像与虚拟机",
+		arc: "归档与安装包",
+		doc: "文档",
+		sys: "系统与支持",
+	},
+	risks: {
+		regenerates: {
+			label: "可重建",
+			hint: "生成它的工具会在需要时把它放回来。",
+		},
+		review: {
+			label: "需判断",
+			hint: "由你决定；没有什么会替你把它重建出来。",
+		},
+		final: {
+			label: "不可逆",
+			hint: "已经扔过一次了。清空就是永久删除。",
+		},
+	},
+	rules: {
+		trash: {
+			title: "废纸篓",
+			blurb: "所有已经扔掉的东西，在清倒废纸篓之前仍然占着空间。",
+			how: "访达 › 清倒废纸篓",
+		},
+		"xcode-build": {
+			title: "Xcode 构建产物",
+			blurb:
+				"DerivedData 和预览缓存：索引、中间文件和产物，Xcode 下次构建时会重新生成。",
+		},
+		simulators: {
+			title: "已停用运行时的模拟器",
+			blurb: "没有哪个 scheme 再面向的系统版本的模拟器设备和运行时映像。",
+		},
+		"device-support": {
+			title: "旧 iOS 版本的符号文件",
+			blurb:
+				"从运行一年多以前 iOS 版本的设备上复制来的调试符号。再接上这些设备时，Xcode 会重新复制。",
+		},
+		"node-modules": {
+			title: "依赖目录",
+			blurb:
+				"每个项目的 node_modules。重新安装一次，几秒钟就能从包存储里恢复。",
+		},
+		"build-output": {
+			title: "构建输出",
+			blurb:
+				"target、.next、.turbo、dist 和 release 文件夹：构建步骤写出来、也能再写一次的一切。",
+		},
+		"pkg-caches": {
+			title: "包管理器缓存",
+			blurb:
+				"Homebrew、pip、uv、npm、Yarn、Bun、Cargo 和 Go 会留着下载过的每一个版本。",
+		},
+		"app-caches": {
+			title: "浏览器与应用缓存",
+			blurb:
+				"Resolve、Adobe、Lightroom、Spotify、Chrome 等应用的媒体缓存、Service Worker 和渲染缓存。",
+			how: "各应用自己的“清除缓存”设置",
+		},
+		"render-media": {
+			title: "Final Cut 渲染与代理媒体",
+			blurb:
+				"Final Cut 资源库里的渲染文件和代理媒体。需要时 Final Cut 会重新渲染。",
+			how: "Final Cut Pro › 文件 › 删除生成的资源库文件",
+		},
+		docker: {
+			title: "Docker 的虚拟磁盘",
+			blurb:
+				"一个稀疏磁盘映像，拉取镜像时变大，自己从不缩小。其中约 70% 是不再使用的层。",
+		},
+		installers: {
+			title: "留在“下载”里的安装包",
+			blurb: "已经完成使命的磁盘映像、安装包和 ISO。",
+		},
+		logs: {
+			title: "日志与崩溃报告",
+			blurb: "诊断报告和轮转下来的旧日志。",
+		},
+		duplicates: {
+			title: "同一份权重，下载了两次",
+			blurb:
+				"放在多处、逐字节相同的模型文件：Hugging Face 缓存、本地副本、另一个运行时的存储。留一份就够了。",
+		},
+		stale: {
+			title: "两年没动过的大文件",
+			blurb: "超过 1 GB、在测量前至少两年里没人打开或写入过的文件。",
+		},
+	},
+	age: {
+		today: "今天",
+		days: (n) => `${n} 天`,
+		weeks: (n) => `${n} 周`,
+		months: (n) => `${n} 个月`,
+		years: (n) => `${n} 年`,
+	},
+};

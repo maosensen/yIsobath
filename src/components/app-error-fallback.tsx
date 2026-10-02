@@ -11,9 +11,11 @@ import { EmptyState } from "@/components/empty-state";
 import { IconError, IconHome, IconReload } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { logger } from "@/lib/logger";
+import { useLocale } from "@/lib/stores/locale-store";
 import { T } from "@/lib/text";
 
 export function AppErrorFallback({ error, reset }: ErrorComponentProps) {
+	useLocale(); // re-render on a language switch
 	logger.error({ error }, "route error boundary hit");
 	const router = useRouter();
 

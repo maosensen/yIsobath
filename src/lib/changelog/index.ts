@@ -9,8 +9,10 @@
  * should not start with that title, or the rendered row reads twice.
  */
 
-import { getLocale } from "@/lib/text";
+import { getLocale, type LocaleCode } from "@/lib/text";
 import { en } from "./en";
+import { ja } from "./ja";
+import { zh } from "./zh";
 
 /** Change category — drives the colored tag on each row. `kind` is
  *  language-independent, so it stays identical across locale files. */
@@ -36,9 +38,9 @@ export type ChangelogRelease = {
 	summary?: string;
 };
 
-const byLocale = { en };
+const byLocale: Record<LocaleCode, ChangelogRelease[]> = { en, zh, ja };
 
-/** Changelog for the active UI locale (falls back to English). */
+/** Changelog for the active UI locale. */
 export function getChangelog(): ChangelogRelease[] {
-	return byLocale[getLocale()] ?? en;
+	return byLocale[getLocale()];
 }

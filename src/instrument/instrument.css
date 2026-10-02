@@ -26,9 +26,10 @@
 	--iso-left-w: 300px;
 	--iso-right-w: 340px;
 	--iso-gutter: 28px;
-	/* 字体来自 @fontsource-variable(src/routes/index.tsx 里引入);引擎也从这两个变量读字体名 */
-	--font-iso-display: "Saira Variable";
-	--font-iso-mono: "Azeret Mono Variable";
+	/* 字体来自 @fontsource-variable(src/routes/index.tsx 里引入);引擎也从这两个变量读字体名。
+	   中日文字形跟着 <html lang> 落到 --font-cjk(src/index.css) */
+	--font-iso-display: "Saira Variable", var(--font-cjk);
+	--font-iso-mono: "Azeret Mono Variable", var(--font-cjk);
 	--iso-display: var(--font-iso-display), ui-sans-serif, system-ui, sans-serif;
 	--iso-mono: var(--font-iso-mono), ui-monospace, monospace;
 	background: var(--iso-bg);
@@ -218,6 +219,11 @@
 .isobath .iso-source {
 	display: flex;
 	gap: 8px;
+	flex: none;
+}
+
+/* 界面语言:顶栏最右端 */
+.isobath .iso-lang {
 	flex: none;
 }
 
@@ -1797,11 +1803,13 @@
 
 /* 弹层(右键菜单、确认框)挂在 body 上,读不到 .isobath 的变量,自带字体 */
 .iso-menu {
-	font-family: "Saira Variable", ui-sans-serif, system-ui, sans-serif;
+	font-family:
+		"Saira Variable", var(--font-cjk), ui-sans-serif, system-ui, sans-serif;
 }
 
 .iso-dialog {
-	font-family: "Saira Variable", ui-sans-serif, system-ui, sans-serif;
+	font-family:
+		"Saira Variable", var(--font-cjk), ui-sans-serif, system-ui, sans-serif;
 }
 
 .iso-dialog [data-slot="alert-dialog-description"] {

@@ -8,6 +8,8 @@
  * 节点之间先退到它们最近的公共祖先,再钻下去。
  */
 
+import { T } from "@/lib/text";
+import { ruleCopy } from "./catalog";
 import * as fmt from "./format";
 import {
 	BASE_Z,
@@ -259,6 +261,25 @@ export class Engine {
 
 	// ---------- 挂载 ----------
 
+	private host: HTMLElement | null = null;
+
+	/** 标注层用的字体:从 CSS 变量读,界面语言变了(中日文字形的备选字体跟着 :lang 换)要重读。 */
+	private readFonts() {
+		if (!this.host) return;
+		const style = getComputedStyle(this.host);
+		this.fonts = {
+			display:
+				style.getPropertyValue("--font-iso-display").trim() || "sans-serif",
+			mono: style.getPropertyValue("--font-iso-mono").trim() || "monospace",
+		};
+	}
+
+	/** 界面语言换了:重读字体、重画一帧标注(轮毂读数、引线标签、悬停标注都是画布上的字)。 */
+	relabel() {
+		this.readFonts();
+		this.loop();
+	}
+
 	attach(
 		host: HTMLElement,
 		canvas: HTMLCanvasElement,
@@ -267,12 +288,8 @@ export class Engine {
 		this.canvas = canvas;
 		this.layer = layer;
 		this.lctx = layer.getContext("2d");
-		const style = getComputedStyle(host);
-		this.fonts = {
-			display:
-				style.getPropertyValue("--font-iso-display").trim() || "sans-serif",
-			mono: style.getPropertyValue("--font-iso-mono").trim() || "monospace",
-		};
+		this.host = host;
+		this.readFonts();
 		const gl = canvas.getContext("webgl2", {
 			alpha: false,
 			antialias: false,
@@ -1435,9 +1452,13 @@ export class Engine {
 				readout = {
 					value: val,
 					unit,
-					name: this.phase === "boot" ? "CALIBRATING" : "SURVEYING",
-					sub: `${fmt.count(c.files)} files`,
-					sub2: `${fmt.pct(c.progress)} of the ${v.meta.source === "folder" ? "survey" : "volume"}`,
+					name:
+						this.phase === "boot" ? T.iso.hub.calibrating : T.iso.hub.surveying,
+					sub: T.iso.hub.files(fmt.count(c.files)),
+					sub2: T.iso.hub.ofThe(
+						fmt.pct(c.progress),
+						v.meta.source === "folder",
+					),
 					accent: false,
 				};
 			} else {
@@ -1449,12 +1470,20 @@ export class Engine {
 					name:
 						shown === 0
 							? v.meta.name.toUpperCase()
-							: v.name[shown].toUpperCase(),
+							: v.label(shown).toUpperCase(),
 					sub:
 						read >= 0
-							? `${fmt.pct(v.bytes[read] / Math.max(1, v.bytes[focus]))} of view`
-							: `${fmt.pct(v.bytes[focus] / v.meta.capacity)} of ${v.meta.source === "folder" ? "survey" : "volume"}`,
-					sub2: `${fmt.count(v.files[shown])} files · ${fmt.count(v.dirs[shown])} folders`,
+							? T.iso.hub.ofView(
+									fmt.pct(v.bytes[read] / Math.max(1, v.bytes[focus])),
+								)
+							: T.iso.hub.of(
+									fmt.pct(v.bytes[focus] / v.meta.capacity),
+									v.meta.source === "folder",
+								),
+					sub2: T.iso.hub.filesFolders(
+						fmt.count(v.files[shown]),
+						fmt.count(v.dirs[shown]),
+					),
 					accent: false,
 				};
 			}
@@ -1478,7 +1507,7 @@ export class Engine {
 					ay: a[1],
 					ex: edge[0],
 					ey: edge[1],
-					name: v.name[c],
+					name: v.label(c),
 					value: fmt.bytes(v.bytes[c]),
 					share: fmt.pct(v.bytes[c] / v.bytes[focus]),
 					active: c === read,
@@ -1493,14 +1522,21 @@ export class Engine {
 			if (a) {
 				const lines: string[] = [];
 				lines.push(
-					`${fmt.bytes(v.bytes[read])}  ·  ${fmt.pct(v.bytes[read] / Math.max(1, v.bytes[focus]))} of view`,
+					`${fmt.bytes(v.bytes[read])}  ·  ${T.iso.hub.ofView(fmt.pct(v.bytes[read] / Math.max(1, v.bytes[focus])))}`,
 				);
 				if (v.isDir(read) || v.isAgg(read) || v.isFolded(read))
 					lines.push(
-						`${fmt.count(v.files[read])} files${v.dirs[read] >= 1 ? ` · ${fmt.count(v.dirs[read])} folders` : ""}`,
+						v.dirs[read] >= 1
+							? T.iso.hub.filesFolders(
+									fmt.count(v.files[read]),
+									fmt.count(v.dirs[read]),
+								)
+							: T.iso.hub.files(fmt.count(v.files[read])),
 					);
 				lines.push(
-					`modified ${fmt.age(v.age[read])} ago`.replace("today ago", "today"),
+					v.age[read] < 1
+						? T.iso.callout.modifiedToday
+						: T.iso.callout.modified(fmt.age(v.age[read])),
 				);
 				const r = v.claim[read];
 				const rule =
@@ -1508,17 +1544,17 @@ export class Engine {
 				callout = {
 					ax: a[0],
 					ay: a[1],
-					title: v.isAgg(read) ? `${v.name[read]}` : v.name[read],
+					title: v.label(read),
 					kicker: v.isAgg(read)
-						? "LOOSE FILES"
+						? T.iso.callout.loose
 						: v.isDir(read) || v.isFolded(read)
 							? this.canOpen(read)
-								? "FOLDER · CLICK TO ENTER"
-								: "FOLDER"
-							: "FILE",
+								? T.iso.callout.folderEnter
+								: T.iso.callout.folder
+							: T.iso.callout.file,
 					path: v.path(v.parent[read]),
 					lines,
-					flag: rule ? `RECLAIMABLE · ${rule.title.toUpperCase()}` : null,
+					flag: rule ? T.iso.callout.reclaimable(ruleCopy(rule).title) : null,
 				};
 			}
 		}
@@ -1549,7 +1585,7 @@ export class Engine {
 					? {
 							x: p[0],
 							y: p[1],
-							text: `${v.name[b.node]}  ${fmt.bytes(b.bytes)}`,
+							text: `${v.label(b.node)}  ${fmt.bytes(b.bytes)}`,
 						}
 					: null;
 			})

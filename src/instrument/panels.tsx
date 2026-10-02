@@ -1,12 +1,14 @@
 import { format, formatDistanceToNowStrict, subDays } from "date-fns";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { T } from "@/lib/text";
+import { dateLocale, T } from "@/lib/text";
 import {
 	ISO_AGE_BUCKET_DAYS,
-	ISO_RISKS,
 	ISO_TYPE_KEYS,
 	ISO_TYPES,
 	type IsoRisk,
+	riskCopy,
+	ruleCopy,
+	typeLabel,
 } from "./catalog";
 import type { Engine, UiState } from "./engine";
 import * as fmt from "./format";
@@ -26,6 +28,18 @@ export function Bytes({
 			{v}
 			<span className="iso-unit">{u}</span>
 		</span>
+	);
+}
+
+/** 词典里的一句话,`{b}` 那里换成加粗的数(各语言里数字的位置不一样)。 */
+function Marked({ text, b }: { text: string; b: string }) {
+	const [pre, post = ""] = text.split("{b}");
+	return (
+		<>
+			{pre}
+			<b>{b}</b>
+			{post}
+		</>
 	);
 }
 
@@ -50,6 +64,18 @@ function Head({
 /** 路径太长就从左边截:…/DerivedData/Harbor-abc/Build。 */
 function shortPath(p: string, max = 42) {
 	return p.length <= max ? p : `…${p.slice(p.length - max + 1)}`;
+}
+
+/** Rust 发来的地方的角色(Data / Home folder / Folder)在当前语言里的叫法;认不出的照原样。 */
+export function roleText(role: string) {
+	const r = T.iso.role;
+	return role === "Data"
+		? r.data
+		: role === "Home folder"
+			? r.home
+			: role === "Folder"
+				? r.folder
+				: role;
 }
 
 // ---------- 焦点 ----------
@@ -80,11 +106,13 @@ function ActionRow({
 			<p className="iso-actions-for" title={v.path(subject)}>
 				{own ? (
 					<>
-						<span>↳</span> {v.name[subject]}
+						<span>↳</span> {v.label(subject)}
 						<em>{fmt.bytes(v.bytes[subject])}</em>
 					</>
 				) : (
-					<span>{subject === 0 ? "This survey" : "This folder"}</span>
+					<span>
+						{subject === 0 ? T.iso.actions.survey : T.iso.actions.folder}
+					</span>
 				)}
 			</p>
 			<div className="iso-actions-row">
@@ -93,23 +121,23 @@ function ActionRow({
 					className="iso-btn iso-btn-quiet"
 					onClick={() => actions.reveal(subject)}
 				>
-					Finder
+					{T.iso.actions.finder}
 				</button>
 				<button
 					type="button"
 					className="iso-btn iso-btn-quiet"
 					onClick={() => actions.copyPath(subject)}
 				>
-					Copy path
+					{T.iso.actions.copyPath}
 				</button>
 				<button
 					type="button"
 					className="iso-btn iso-btn-trash"
 					disabled={!actions.canTrash(subject)}
 					onClick={() => actions.trash(subject)}
-					title="Move to Trash (⌘⌫)"
+					title={T.iso.actions.trashTitle}
 				>
-					Trash…
+					{T.iso.actions.trash}
 				</button>
 			</div>
 		</div>
@@ -146,16 +174,16 @@ export function FocusPanel({
 	const total = Math.max(1, v.bytes[f]);
 	const depth = v.depth[f];
 	return (
-		<section className="iso-panel iso-focus" aria-label="Focus">
+		<section className="iso-panel iso-focus" aria-label={T.iso.focus.title}>
 			<Head index="01" aside={`L${depth}`}>
-				Focus
+				{T.iso.focus.title}
 			</Head>
 			<p className="iso-path" title={v.path(f)}>
 				{f === 0
-					? `${v.meta.name} — ${v.meta.role}`
+					? `${v.meta.name} — ${roleText(v.meta.role)}`
 					: shortPath(v.path(v.parent[f]), 40)}
 			</p>
-			<p className="iso-name">{f === 0 ? v.meta.name : v.name[f]}</p>
+			<p className="iso-name">{f === 0 ? v.meta.name : v.label(f)}</p>
 			<p className="iso-big">
 				<Bytes value={bytes} />
 			</p>
@@ -171,33 +199,33 @@ export function FocusPanel({
 			)}
 			<dl className="iso-meta">
 				<div>
-					<dt>Share</dt>
+					<dt>{T.iso.focus.share}</dt>
 					<dd>{fmt.pct(bytes / v.meta.capacity)}</dd>
 				</div>
 				<div>
-					<dt>Files</dt>
+					<dt>{T.iso.focus.files}</dt>
 					<dd>{fmt.count(done ? v.files[f] : state.files)}</dd>
 				</div>
 				<div>
-					<dt>Folders</dt>
+					<dt>{T.iso.focus.folders}</dt>
 					<dd>{fmt.count(done ? v.dirs[f] : state.folders)}</dd>
 				</div>
 				<div>
-					<dt>Age</dt>
+					<dt>{T.iso.focus.age}</dt>
 					<dd>{done ? fmt.age(v.age[f]) : "—"}</dd>
 				</div>
 				<div className="iso-meta-amber">
-					<dt>Reclaim</dt>
+					<dt>{T.iso.focus.reclaim}</dt>
 					<dd>{done ? fmt.bytes(v.reclaim[f]) : "—"}</dd>
 				</div>
 				<div>
-					<dt>Mostly</dt>
+					<dt>{T.iso.focus.mostly}</dt>
 					<dd>{done ? ISO_TYPES[ISO_TYPE_KEYS[v.type[f]]].code : "—"}</dd>
 				</div>
 			</dl>
 
-			<Head index="02" aside={done ? undefined : "listing…"}>
-				Composition
+			<Head index="02" aside={done ? undefined : T.iso.focus.listing}>
+				{T.iso.focus.composition}
 			</Head>
 			<div
 				className="iso-stack"
@@ -222,7 +250,7 @@ export function FocusPanel({
 					<li key={t.key}>
 						<i style={{ background: TYPE_COLOR[t.key] }} />
 						<span className="iso-types-code">{ISO_TYPES[t.key].code}</span>
-						<span className="iso-types-label">{ISO_TYPES[t.key].label}</span>
+						<span className="iso-types-label">{typeLabel(t.key)}</span>
 						<span className="iso-types-val">
 							{done ? fmt.bytes(t.bytes) : "—"}
 						</span>
@@ -233,8 +261,11 @@ export function FocusPanel({
 				))}
 			</ul>
 
-			<Head index="03" aside={done ? `${kids.length} items` : "listing…"}>
-				Largest inside
+			<Head
+				index="03"
+				aside={done ? T.iso.focus.items(kids.length) : T.iso.focus.listing}
+			>
+				{T.iso.focus.largest}
 			</Head>
 			<ol className="iso-largest" data-pending={done ? "false" : "true"}>
 				{kids.slice(0, 6).map((c, i) => {
@@ -256,7 +287,7 @@ export function FocusPanel({
 								<span className="iso-largest-rank">
 									{String(i + 1).padStart(2, "0")}
 								</span>
-								<span className="iso-largest-name">{v.name[c]}</span>
+								<span className="iso-largest-name">{v.label(c)}</span>
 								<span className="iso-largest-val">
 									{done ? fmt.bytes(v.bytes[c]) : "—"}
 								</span>
@@ -336,13 +367,13 @@ export function SearchBox({
 					<circle cx="7" cy="7" r="4.5" />
 					<path d="M10.4 10.4 14 14" />
 				</svg>
-				<span className="iso-sr">Find by name</span>
+				<span className="iso-sr">{T.iso.search.label}</span>
 				<input
 					ref={input}
 					type="search"
 					value={q}
 					disabled={!done}
-					placeholder={done ? "Find by name" : "Find — after the survey"}
+					placeholder={done ? T.iso.search.label : T.iso.search.waiting}
 					spellCheck={false}
 					autoComplete="off"
 					onChange={(e) => run(e.currentTarget.value)}
@@ -363,12 +394,15 @@ export function SearchBox({
 				<div className="iso-search-results">
 					<p className="iso-search-sum">
 						{res.count === 0 ? (
-							"No names match"
+							T.iso.search.none
 						) : (
 							<>
-								<b>{fmt.exact(res.count)}</b>{" "}
-								{res.count === 1 ? "match" : "matches"} · {fmt.bytes(res.bytes)}{" "}
-								· {fmt.pct(res.bytes / Math.max(1, v.bytes[0]))}
+								<Marked
+									text={T.iso.search.matches(res.count)}
+									b={fmt.exact(res.count)}
+								/>{" "}
+								· {fmt.bytes(res.bytes)} ·{" "}
+								{fmt.pct(res.bytes / Math.max(1, v.bytes[0]))}
 							</>
 						)}
 					</p>
@@ -381,7 +415,7 @@ export function SearchBox({
 									onClick={() => engine.reveal(i)}
 									title={v.path(i)}
 								>
-									<span>{v.name[i]}</span>
+									<span>{v.label(i)}</span>
 									<em>{shortPath(v.path(v.parent[i]), 34)}</em>
 									<span>{fmt.bytes(v.bytes[i])}</span>
 								</button>
@@ -443,9 +477,9 @@ function RateGauge({ rate, peak }: { rate: number; peak: number }) {
 			</svg>
 			<p className="iso-rate-read">
 				<span>{fmt.count(rate)}</span>
-				<em>entries / s</em>
+				<em>{T.iso.rate.unit}</em>
 			</p>
-			<p className="iso-rate-peak-read">peak {fmt.count(peak)}</p>
+			<p className="iso-rate-peak-read">{T.iso.rate.peak(fmt.count(peak))}</p>
 		</div>
 	);
 }
@@ -458,26 +492,26 @@ export function SurveyPanel({
 	state: UiState;
 }) {
 	return (
-		<section className="iso-panel iso-survey" aria-label="Survey">
+		<section className="iso-panel iso-survey" aria-label={T.iso.log.title}>
 			<Head index="04" aside={fmt.clock(state.elapsed)}>
-				{state.phase === "boot" ? "Calibrating" : "Survey"}
+				{state.phase === "boot" ? T.iso.log.calibrating : T.iso.log.title}
 			</Head>
 			<RateGauge rate={state.rate} peak={state.peak} />
 			<dl className="iso-meta iso-meta-3">
 				<div>
-					<dt>Listed</dt>
+					<dt>{T.iso.log.listed}</dt>
 					<dd>{fmt.bytes(state.bytes)}</dd>
 				</div>
 				<div>
-					<dt>Files</dt>
+					<dt>{T.iso.log.files}</dt>
 					<dd>{fmt.count(state.files)}</dd>
 				</div>
 				<div>
-					<dt>Folders</dt>
+					<dt>{T.iso.log.folders}</dt>
 					<dd>{fmt.count(state.folders)}</dd>
 				</div>
 			</dl>
-			<Head index="05">Survey log</Head>
+			<Head index="05">{T.iso.log.log}</Head>
 			<ol className="iso-log" aria-live="off">
 				{state.log.map((line, i) => (
 					<li
@@ -491,10 +525,12 @@ export function SurveyPanel({
 			</ol>
 			<p className="iso-note">
 				{v.meta.source === "demo"
-					? `Replaying a survey of ${v.meta.name} recorded ${v.meta.when.replace("T", " ")}.`
-					: `Surveyed ${fmt.shortRoot(v.meta.display ?? v.meta.name)} on ${v.meta.when.replace("T", " ")}; only names, sizes and dates were read.`}{" "}
-				Folders rise as they are listed; the sweep follows directory order,
-				largest first.
+					? T.iso.log.replaying(v.meta.name, v.meta.when.replace("T", " "))
+					: T.iso.log.surveyed(
+							fmt.shortRoot(v.meta.display ?? v.meta.name),
+							v.meta.when.replace("T", " "),
+						)}{" "}
+				{T.iso.log.sweep}
 			</p>
 		</section>
 	);
@@ -523,22 +559,37 @@ export function FindingsPanel({
 	}, [v]);
 	const total = Math.max(1, v.reclaimTotal);
 	const hover = (r: number) => engine.setFinding(r >= 0 ? r : open);
+	const share = fmt.pct(v.reclaimTotal / Math.max(1, v.bytes[0]));
+	const used = fmt.bytes(v.bytes[0]);
 	return (
-		<section className="iso-panel iso-findings" aria-label="Reclaimable space">
-			<Head index="04" aside={`${v.findings.length} findings`}>
-				Reclaimable
+		<section
+			className="iso-panel iso-findings"
+			aria-label={T.iso.findings.label}
+		>
+			<Head index="04" aside={T.iso.findings.count(v.findings.length)}>
+				{T.iso.findings.title}
 			</Head>
 			<p className="iso-big iso-big-amber">
 				<Bytes value={v.reclaimTotal} />
 			</p>
 			<p className="iso-sub">
-				{fmt.pct(v.reclaimTotal / Math.max(1, v.bytes[0]))} of the{" "}
-				{fmt.bytes(v.bytes[0])}{" "}
 				{v.meta.source === "demo"
-					? `in use · free after: ${fmt.bytes(v.meta.capacity - v.bytes[0] + v.reclaimTotal)}`
+					? T.iso.findings.inUse(
+							share,
+							used,
+							fmt.bytes(v.meta.capacity - v.bytes[0] + v.reclaimTotal),
+						)
 					: v.meta.source === "volume" && v.meta.free !== undefined
-						? `surveyed · free after: ${fmt.bytes(v.meta.free + v.reclaimTotal)}`
-						: `in ${fmt.shortRoot(v.meta.display ?? v.meta.name)}`}
+						? T.iso.findings.ofVolume(
+								share,
+								used,
+								fmt.bytes(v.meta.free + v.reclaimTotal),
+							)
+						: T.iso.findings.ofFolder(
+								share,
+								used,
+								fmt.shortRoot(v.meta.display ?? v.meta.name),
+							)}
 			</p>
 			<div className="iso-risk" aria-hidden="true">
 				{RISK_ORDER.map((r) => (
@@ -553,22 +604,19 @@ export function FindingsPanel({
 			</div>
 			<ul className="iso-risk-legend">
 				{RISK_ORDER.map((r) => (
-					<li key={r} data-risk={r} title={ISO_RISKS[r].hint}>
+					<li key={r} data-risk={r} title={riskCopy(r).hint}>
 						<i />
-						{ISO_RISKS[r].label}
+						{riskCopy(r).label}
 						<span>{fmt.bytes(byRisk.get(r) ?? 0)}</span>
 					</li>
 				))}
 			</ul>
 			{v.findings.length === 0 && (
-				<p className="iso-empty">
-					Nothing here matches a rule: no dependency folders, build output,
-					caches, installers, duplicates or large files left alone for two
-					years.
-				</p>
+				<p className="iso-empty">{T.iso.findings.none}</p>
 			)}
 			<ol className="iso-find-list" onMouseLeave={() => hover(-1)}>
 				{v.findings.map((f) => {
+					const copy = ruleCopy(f.rule);
 					const expanded = open === f.ruleIndex;
 					const lit = state.finding === f.ruleIndex;
 					return (
@@ -591,32 +639,31 @@ export function FindingsPanel({
 							>
 								<i data-risk={f.rule.risk} />
 								<span className="iso-find-title">
-									{f.rule.title}
-									<em>
-										{f.places.length}{" "}
-										{f.places.length === 1 ? "place" : "places"}
-									</em>
+									{copy.title}
+									<em>{T.iso.findings.places(f.places.length)}</em>
 								</span>
 								<span className="iso-find-val">{fmt.bytes(f.bytes)}</span>
 							</button>
 							{expanded && (
 								<div className="iso-find-body">
-									<p>{f.rule.blurb}</p>
-									{f.rule.command && (
+									<p>{copy.blurb}</p>
+									{copy.command && (
 										<div className="iso-cmd">
-											<code>{f.rule.command}</code>
+											<code>{copy.command}</code>
 											<button
 												type="button"
 												onClick={() => {
 													navigator.clipboard
-														?.writeText(f.rule.command ?? "")
+														?.writeText(copy.command ?? "")
 														.then(
 															() => setCopied(f.ruleIndex),
 															() => {},
 														);
 												}}
 											>
-												{copied === f.ruleIndex ? "Copied" : "Copy"}
+												{copied === f.ruleIndex
+													? T.iso.findings.copied
+													: T.iso.findings.copy}
 											</button>
 										</div>
 									)}
@@ -635,13 +682,14 @@ export function FindingsPanel({
 										))}
 									</ul>
 									{f.places.length > 6 && (
-										<p className="iso-more">and {f.places.length - 6} more</p>
+										<p className="iso-more">
+											{T.iso.findings.more(f.places.length - 6)}
+										</p>
 									)}
 									<p className="iso-risk-note" data-risk={f.rule.risk}>
-										{ISO_RISKS[f.rule.risk].label} —{" "}
-										{ISO_RISKS[f.rule.risk].hint}
+										{riskCopy(f.rule.risk).label} — {riskCopy(f.rule.risk).hint}
 										{f.rule.recover
-											? ` Counted at ${Math.round(f.rule.recover * 100)}% of ${fmt.bytes(f.gross)}.`
+											? ` ${T.iso.findings.counted(Math.round(f.rule.recover * 100), fmt.bytes(f.gross))}`
 											: ""}
 									</p>
 								</div>
@@ -685,13 +733,18 @@ function ChangeSection({
 	return (
 		<>
 			<Head index="05" aside={signed(v.bytes[0] - c.was)}>
-				{T.change.since(format(c.since, "MMM d, HH:mm"))}
+				{T.change.since(
+					format(c.since, T.change.dateFormat, { locale: dateLocale() }),
+				)}
 			</Head>
 			<p className="iso-change-note">
 				{T.change.net(
 					fmt.bytes(c.was),
 					fmt.bytes(v.bytes[0]),
-					formatDistanceToNowStrict(c.since, { addSuffix: true }),
+					formatDistanceToNowStrict(c.since, {
+						addSuffix: true,
+						locale: dateLocale(),
+					}),
 				)}
 			</p>
 			{c.places.length === 0 ? (
@@ -747,7 +800,9 @@ export function AgeStrata({
 			bin: number;
 			focus: number;
 			shown: number;
+			/** 年份标签;最老那一格写「更早」(文字在渲染时取,这里不存,换语言时不会过期)。 */
 			label: string | null;
+			oldest: boolean;
 			year: number;
 		}[] = [];
 		// 平方根刻度:最近一个季度往往一家独大,线性刻度会把其余的压成一条线
@@ -760,12 +815,8 @@ export function AgeStrata({
 			const bin = AGE_BINS - 1 - c;
 			const start = subDays(at, (bin + 1) * ISO_AGE_BUCKET_DAYS);
 			const year = start.getFullYear();
-			const label =
-				bin === AGE_BINS - 1
-					? "older"
-					: year !== prevYear
-						? String(year)
-						: null;
+			const oldest = bin === AGE_BINS - 1;
+			const label = !oldest && year !== prevYear ? String(year) : null;
 			prevYear = year;
 			out.push({
 				bin,
@@ -773,6 +824,7 @@ export function AgeStrata({
 				shown:
 					shown >= 0 ? Math.sqrt(v.ageHist[shown * AGE_BINS + bin]) / max : 0,
 				label,
+				oldest,
 				year,
 			});
 		}
@@ -802,36 +854,34 @@ export function AgeStrata({
 	const old = v.ageShare(node, year, AGE_BINS);
 	const selShare = sel ? v.ageShare(node, sel[0], sel[1]) : 0;
 	const done = state.phase === "complete";
+	const of =
+		node === 0
+			? v.meta.source === "folder"
+				? T.iso.strata.survey
+				: T.iso.strata.volume
+			: v.label(node);
 	return (
-		<section className="iso-strata" aria-label="Age strata">
+		<section className="iso-strata" aria-label={T.iso.strata.title}>
 			<div className="iso-strata-head">
 				<span className="iso-head-index">06</span>
-				<span className="iso-head-title">Age strata</span>
-				<span className="iso-strata-scale">last modified · √ bytes</span>
+				<span className="iso-head-title">{T.iso.strata.title}</span>
+				<span className="iso-strata-scale">{T.iso.strata.scale}</span>
 				<span className="iso-strata-read">
 					{sel ? (
 						<>
-							<b>{fmt.bytes(v.bytes[node] * selShare)}</b> in selection ·{" "}
-							{fmt.pct(selShare)} of{" "}
-							{node === 0
-								? v.meta.source === "folder"
-									? "survey"
-									: "volume"
-								: v.name[node]}
+							<Marked
+								text={T.iso.strata.inSelection(fmt.pct(selShare), of)}
+								b={fmt.bytes(v.bytes[node] * selShare)}
+							/>
 							<button type="button" onClick={() => engine.setAgeRange(null)}>
-								Clear
+								{T.iso.strata.clear}
 							</button>
 						</>
 					) : (
-						<>
-							<b>{fmt.bytes(v.bytes[node] * old)}</b> untouched for a year ·{" "}
-							{fmt.pct(old)} of{" "}
-							{node === 0
-								? v.meta.source === "folder"
-									? "survey"
-									: "volume"
-								: v.name[node]}
-						</>
+						<Marked
+							text={T.iso.strata.untouched(fmt.pct(old), of)}
+							b={fmt.bytes(v.bytes[node] * old)}
+						/>
 					)}
 				</span>
 			</div>
@@ -840,12 +890,12 @@ export function AgeStrata({
 				className="iso-strata-plot"
 				role="slider"
 				tabIndex={done ? 0 : -1}
-				aria-label="Filter by last-modified age. Drag to select a range."
+				aria-label={T.iso.strata.slider}
 				aria-valuemin={0}
 				aria-valuemax={AGE_BINS}
 				aria-valuenow={sel ? sel[0] : 0}
 				aria-valuetext={
-					sel ? `${sel[0]} to ${sel[1]} quarters ago` : "no filter"
+					sel ? T.iso.strata.range(sel[0], sel[1]) : T.iso.strata.noFilter
 				}
 				data-disabled={done ? "false" : "true"}
 				onPointerDown={(e) => {
@@ -884,7 +934,11 @@ export function AgeStrata({
 								style={{ height: `${(c.shown * 100).toFixed(2)}%` }}
 							/>
 						)}
-						{c.label && <span className="iso-strata-year">{c.label}</span>}
+						{(c.oldest || c.label) && (
+							<span className="iso-strata-year">
+								{c.oldest ? T.iso.strata.older : c.label}
+							</span>
+						)}
 					</span>
 				))}
 			</div>
@@ -905,7 +959,7 @@ export function Crumbs({
 }) {
 	const chain = v.ancestors(state.focus);
 	return (
-		<nav className="iso-crumbs" aria-label="Path">
+		<nav className="iso-crumbs" aria-label={T.iso.crumbs}>
 			{chain.map((i, k) => (
 				<span key={i}>
 					{k > 0 && <span className="iso-crumb-sep">›</span>}
@@ -914,7 +968,7 @@ export function Crumbs({
 						onClick={() => engine.goTo(i)}
 						aria-current={i === state.focus ? "location" : undefined}
 					>
-						{i === 0 ? v.meta.name : v.name[i]}
+						{i === 0 ? v.meta.name : v.label(i)}
 					</button>
 				</span>
 			))}

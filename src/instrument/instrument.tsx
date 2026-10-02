@@ -34,6 +34,8 @@ import {
 	DropdownMenuGroup,
 	DropdownMenuItem,
 	DropdownMenuLabel,
+	DropdownMenuRadioGroup,
+	DropdownMenuRadioItem,
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -41,6 +43,7 @@ import { useReducedMotionSafe } from "@/hooks/use-reduced-motion";
 import { useWindowDrag } from "@/hooks/use-window-drag";
 import { pickDirectory } from "@/lib/dialogs";
 import { logger } from "@/lib/logger";
+import { useLocale, useLocaleStore } from "@/lib/stores/locale-store";
 import {
 	devOptions,
 	errorText,
@@ -56,10 +59,17 @@ import {
 	stopSurvey,
 	surveyPlaces,
 } from "@/lib/survey";
-import { T } from "@/lib/text";
-import { ISO_RISKS, ISO_RULES, ISO_TYPE_KEYS, ISO_TYPES } from "./catalog";
+import { LANGUAGE_NAMES, localeCodes, T } from "@/lib/text";
+import {
+	ISO_RULES,
+	ISO_TYPE_KEYS,
+	ISO_TYPES,
+	riskCopy,
+	ruleCopy,
+	typeLabel,
+} from "./catalog";
 import { buildIsobathVolume, ISO_VOLUME } from "./demo";
-import { Engine, type Lens, type UiState, type ViewMode } from "./engine";
+import { Engine, type Lens, type ViewMode } from "./engine";
 import * as fmt from "./format";
 import { AGE_RAMP, TYPE_COLOR } from "./palette";
 import {
@@ -68,6 +78,7 @@ import {
 	FindingsPanel,
 	FocusPanel,
 	type ItemActions,
+	roleText,
 	SearchBox,
 	SurveyPanel,
 } from "./panels";
@@ -114,32 +125,27 @@ function basename(path: string) {
 	return parts[parts.length - 1] ?? path;
 }
 
-const LENSES: { key: Lens; label: string }[] = [
-	{ key: "survey", label: "Survey" },
-	{ key: "type", label: "Type" },
-	{ key: "age", label: "Age" },
-	{ key: "reclaim", label: "Reclaim" },
-];
+// 选项的文字在渲染时读,切换语言之后跟着变
+const LENSES: Lens[] = ["survey", "type", "age", "reclaim"];
+const VIEWS: ViewMode[] = ["orbit", "plan"];
 
-const VIEWS: { key: ViewMode; label: string }[] = [
-	{ key: "orbit", label: "Orbit" },
-	{ key: "plan", label: "Plan" },
-];
-
-function Segmented<T extends string>({
+function Segmented<K extends string>({
+	name,
 	label,
 	options,
 	value,
 	onChange,
 	disabled,
 }: {
+	/** 不随语言变的名字,拿来拼 id。 */
+	name: string;
 	label: string;
-	options: { key: T; label: string }[];
-	value: T;
-	onChange: (v: T) => void;
+	options: { key: K; label: string }[];
+	value: K;
+	onChange: (v: K) => void;
 	disabled?: boolean;
 }) {
-	const id = `iso-seg-${label.toLowerCase()}`;
+	const id = `iso-seg-${name}`;
 	// 不用 fieldset + legend:WebKit 不让浮动的 legend 排进同一行(桌面版跑在 WKWebView 里)
 	return (
 		<div
@@ -173,7 +179,7 @@ function Legend({ lens }: { lens: Lens }) {
 		return (
 			<ul className="iso-legend">
 				{ISO_TYPE_KEYS.map((k) => (
-					<li key={k} title={ISO_TYPES[k].label}>
+					<li key={k} title={typeLabel(k)}>
 						<i style={{ background: TYPE_COLOR[k] }} />
 						{ISO_TYPES[k].code}
 					</li>
@@ -183,41 +189,42 @@ function Legend({ lens }: { lens: Lens }) {
 	if (lens === "age")
 		return (
 			<div className="iso-legend iso-legend-ramp">
-				<span>today</span>
+				<span>{T.iso.legend.today}</span>
 				<i
 					style={{
 						background: `linear-gradient(90deg, ${AGE_RAMP.join(", ")})`,
 					}}
 				/>
-				<span>6 yr +</span>
-				<em>median age of each folder, by bytes</em>
+				<span>{T.iso.legend.sixYears}</span>
+				<em>{T.iso.legend.ageNote}</em>
 			</div>
 		);
 	if (lens === "reclaim")
 		return (
 			<div className="iso-legend iso-legend-ramp">
-				<span>none</span>
+				<span>{T.iso.legend.none}</span>
 				<i className="iso-legend-amber" />
-				<span>all of it</span>
-				<em>share of each folder that can be reclaimed</em>
+				<span>{T.iso.legend.all}</span>
+				<em>{T.iso.legend.reclaimNote}</em>
 			</div>
 		);
 	return (
 		<ul className="iso-legend iso-legend-kinds">
 			<li>
 				<i data-kind="dir" />
-				folder
+				{T.iso.legend.folder}
 			</li>
 			<li>
 				<i data-kind="file" />
-				file
+				{T.iso.legend.file}
 			</li>
 			<li>
 				<i data-kind="loose" />
-				loose files
+				{T.iso.legend.loose}
 			</li>
 			<li>
-				<i data-kind="lines" />1 line = 2,000 files
+				<i data-kind="lines" />
+				{T.iso.legend.lines}
 			</li>
 		</ul>
 	);
@@ -235,11 +242,44 @@ function Mark() {
 	);
 }
 
-const PHASE_LABEL: Record<UiState["phase"], string> = {
-	boot: "Calibrating",
-	survey: "Surveying",
-	complete: "Survey complete",
-};
+/** 界面语言:顶栏右端一个小菜单,各语言的名字用它自己的文字写。 */
+function LanguageMenu() {
+	const locale = useLocale();
+	const setLocale = useLocaleStore((s) => s.setLocale);
+	return (
+		<DropdownMenu>
+			<DropdownMenuTrigger
+				render={
+					<button
+						type="button"
+						className="iso-btn iso-btn-quiet iso-lang"
+						title={T.language.label}
+						aria-label={`${T.language.label}: ${LANGUAGE_NAMES[locale]}`}
+					/>
+				}
+			>
+				{LANGUAGE_NAMES[locale]}
+			</DropdownMenuTrigger>
+			<DropdownMenuContent align="end" className="iso-menu">
+				<DropdownMenuGroup>
+					<DropdownMenuLabel>{T.language.label}</DropdownMenuLabel>
+					<DropdownMenuRadioGroup
+						value={locale}
+						onValueChange={(code) =>
+							setLocale(code as (typeof localeCodes)[number])
+						}
+					>
+						{localeCodes.map((code) => (
+							<DropdownMenuRadioItem key={code} value={code}>
+								{LANGUAGE_NAMES[code]}
+							</DropdownMenuRadioItem>
+						))}
+					</DropdownMenuRadioGroup>
+				</DropdownMenuGroup>
+			</DropdownMenuContent>
+		</DropdownMenu>
+	);
+}
 
 export function Instrument() {
 	const stage = useRef<HTMLElement>(null);
@@ -254,6 +294,12 @@ export function Instrument() {
 	const [engine, setEngine] = useState<Engine | null>(null);
 	const reduced = useReducedMotionSafe();
 	const drag = useWindowDrag();
+	// 换语言时整个仪器重新渲染(面板读 T);画布上的字由引擎重画,不重挂、不丢掉眼前的测量
+	const locale = useLocale();
+	// biome-ignore lint/correctness/useExhaustiveDependencies: 语言一变就要重画画布上的字
+	useEffect(() => {
+		engine?.relabel();
+	}, [engine, locale]);
 
 	const measure = useCallback((e: Engine) => {
 		const vp = viewport.current;
@@ -321,7 +367,8 @@ export function Instrument() {
 	});
 	const volumeLabel = places.data?.volumeName ?? "Macintosh HD";
 	const [scan, setScan] = useState<Scan>(null);
-	const [scanError, setScanError] = useState<string | null>(null);
+	// 存错误本身、渲染时再成句,换语言之后跟着变
+	const [scanError, setScanError] = useState<{ error: unknown } | null>(null);
 	const [preflight, setPreflight] = useState<Pending | null>(null);
 	const [acknowledged, setAcknowledged] = useState(false);
 	const [last, setLast] = useState<Last | null>(null);
@@ -343,7 +390,7 @@ export function Instrument() {
 				);
 				setLast({ target, label, stats: result.stats });
 			} catch (err) {
-				if (!isCancel(err)) setScanError(errorText(err));
+				if (!isCancel(err)) setScanError({ error: err });
 			} finally {
 				setScan(null);
 			}
@@ -529,14 +576,19 @@ export function Instrument() {
 
 	const subject = state ? (state.select >= 0 ? state.select : state.focus) : -1;
 
-	const announce = useMemo(() => {
+	// 每次渲染现算(很便宜):放进 useMemo 的话,换语言之后要等下一次选中才跟上
+	const announce = (() => {
 		if (!v || !state) return "";
 		const i = state.select >= 0 ? state.select : -1;
 		if (i < 0) return "";
-		return `${v.name[i]}, ${fmt.bytes(v.bytes[i])}, ${fmt.pct(v.bytes[i] / Math.max(1, v.bytes[state.focus]))} of ${
-			state.focus === 0 ? v.meta.name : v.name[state.focus]
-		}${engine?.canOpen(i) ? ". Press Enter to open." : "."}`;
-	}, [engine, v, state]);
+		const said = T.iso.announce(
+			v.label(i),
+			fmt.bytes(v.bytes[i]),
+			fmt.pct(v.bytes[i] / Math.max(1, v.bytes[state.focus])),
+			state.focus === 0 ? v.meta.name : v.label(state.focus),
+		);
+		return engine?.canOpen(i) ? `${said}. ${T.iso.announceOpen}` : `${said}.`;
+	})();
 
 	const onKey = (e: React.KeyboardEvent) => {
 		if (!engine) return;
@@ -574,20 +626,23 @@ export function Instrument() {
 	const volumeChip = () => {
 		if (!v || v.meta.source === "demo")
 			return {
-				title: `Demo volume, recorded on ${ISO_VOLUME.host} at ${ISO_VOLUME.surveyedAt.replace("T", " ")}`,
-				name: `${ISO_VOLUME.name} — ${ISO_VOLUME.role} · demo`,
+				title: T.iso.chip.demoTitle(
+					ISO_VOLUME.host,
+					ISO_VOLUME.surveyedAt.replace("T", " "),
+				),
+				name: `${ISO_VOLUME.name} — ${roleText(ISO_VOLUME.role)} · ${T.iso.chip.demo}`,
 				meta: `${ISO_VOLUME.fs} · ${fmt.bytes(ISO_VOLUME.capacity)} · ${ISO_VOLUME.device}`,
 			};
 		if (v.meta.source === "volume")
 			return {
 				title: `${v.meta.root ?? ""} · ${v.meta.device}`,
-				name: `${v.meta.name} — ${v.meta.role}`,
-				meta: `${v.meta.fs} · ${fmt.bytes(v.meta.capacity)} · ${fmt.bytes(v.meta.free ?? 0)} free`,
+				name: `${v.meta.name} — ${roleText(v.meta.role)}`,
+				meta: `${v.meta.fs} · ${fmt.bytes(v.meta.capacity)} · ${T.iso.chip.free(fmt.bytes(v.meta.free ?? 0))}`,
 			};
 		return {
 			title: v.meta.root ?? v.meta.name,
 			name: fmt.shortRoot(v.meta.display ?? v.meta.name),
-			meta: `${fmt.bytes(v.bytes[0])} · ${v.meta.role.toLowerCase()}`,
+			meta: T.iso.chip.folder(fmt.bytes(v.bytes[0]), roleText(v.meta.role)),
 		};
 	};
 	const chip = volumeChip();
@@ -604,7 +659,7 @@ export function Instrument() {
 							// biome-ignore lint/a11y/noNoninteractiveTabindex: 浮雕本身接受键盘操作
 							tabIndex={0}
 							role="application"
-							aria-label="Volume relief. Arrow keys move between folders, Enter opens a folder, Escape goes up a level. Drag to orbit."
+							aria-label={T.iso.relief}
 							onKeyDown={onKey}
 							onContextMenu={() => {
 								const s = engine?.getSnapshot();
@@ -615,21 +670,18 @@ export function Instrument() {
 				>
 					<canvas ref={gl} className="iso-gl" />
 					<canvas ref={layer} className="iso-layer" />
-					{state?.failed && (
-						<p className="iso-fail">
-							This instrument draws with WebGL2, which this computer&rsquo;s
-							WebView did not provide.
-						</p>
-					)}
+					{state?.failed && <p className="iso-fail">{T.iso.noWebgl}</p>}
 					{scan && (
 						<output className="iso-scan">
 							<p className="iso-scan-kicker">{T.survey.surveying}</p>
 							<p className="iso-scan-name">{scan.label}</p>
 							<span className="iso-scan-bar" aria-hidden="true" />
 							<p className="iso-scan-read">
-								{fmt.exact(scan.progress.files)} files ·{" "}
-								{fmt.exact(scan.progress.dirs)} folders ·{" "}
-								{fmt.bytes(scan.progress.bytes)}
+								{T.iso.scanRead(
+									fmt.exact(scan.progress.files),
+									fmt.exact(scan.progress.dirs),
+									fmt.bytes(scan.progress.bytes),
+								)}
 							</p>
 							<p className="iso-scan-path">
 								{shown(scan.progress.current) || "…"}
@@ -704,7 +756,7 @@ export function Instrument() {
 					)}
 					{scanError && !scan && (
 						<p className="iso-fail" role="alert">
-							{scanError}
+							{errorText(scanError.error)}
 						</p>
 					)}
 				</ContextMenuTrigger>
@@ -712,7 +764,7 @@ export function Instrument() {
 					<ContextMenuGroup>
 						{v && menuTarget >= 0 && (
 							<ContextMenuLabel>
-								{menuTarget === 0 ? v.meta.name : v.name[menuTarget]} ·{" "}
+								{menuTarget === 0 ? v.meta.name : v.label(menuTarget)} ·{" "}
 								{fmt.bytes(v.bytes[menuTarget])}
 							</ContextMenuLabel>
 						)}
@@ -757,7 +809,7 @@ export function Instrument() {
 				<div className="iso-brand">
 					<Mark />
 					<span className="iso-word">Isobath</span>
-					<span className="iso-tag">Volume survey</span>
+					<span className="iso-tag">{T.iso.tag}</span>
 				</div>
 				<div className="iso-volume" title={chip.title}>
 					<svg viewBox="0 0 16 16" aria-hidden="true">
@@ -823,7 +875,7 @@ export function Instrument() {
 					<span className="iso-status-label">
 						{done && native && last?.stats.partial
 							? T.survey.stopped
-							: PHASE_LABEL[state?.phase ?? "boot"]}
+							: T.iso.phase[state?.phase ?? "boot"]}
 					</span>
 					<span className="iso-progress" aria-hidden="true">
 						<span
@@ -831,8 +883,10 @@ export function Instrument() {
 						/>
 					</span>
 					<span className="iso-status-read">
-						{fmt.clock(state?.elapsed ?? 0)} · {fmt.count(state?.files ?? 0)}{" "}
-						files
+						{T.iso.statusRead(
+							fmt.clock(state?.elapsed ?? 0),
+							fmt.count(state?.files ?? 0),
+						)}
 					</span>
 					{done && native && denied > 0 && (
 						<button
@@ -853,7 +907,7 @@ export function Instrument() {
 							className="iso-btn"
 							onClick={() => engine?.skip()}
 						>
-							Skip
+							{T.iso.skip}
 						</button>
 					) : native && last ? (
 						<button
@@ -871,24 +925,27 @@ export function Instrument() {
 							disabled={!engine}
 							onClick={() => engine?.startReplay(ISO_VOLUME.replaySeconds)}
 						>
-							Replay
+							{T.iso.replay}
 						</button>
 					)}
 				</div>
+				<LanguageMenu />
 			</header>
 
 			<div className="iso-tools" ref={tools}>
 				<div className="iso-tools-row">
 					<Segmented
-						label="Lens"
-						options={LENSES}
+						name="lens"
+						label={T.iso.lens.label}
+						options={LENSES.map((key) => ({ key, label: T.iso.lens[key] }))}
 						value={state?.lens ?? "survey"}
 						onChange={(l) => engine?.setLens(l)}
 						disabled={!engine}
 					/>
 					<Segmented
-						label="View"
-						options={VIEWS}
+						name="view"
+						label={T.iso.view.label}
+						options={VIEWS.map((key) => ({ key, label: T.iso.view[key] }))}
 						value={state?.view ?? "orbit"}
 						onChange={(m) => engine?.setMode(m)}
 						disabled={!engine}
@@ -896,21 +953,21 @@ export function Instrument() {
 					<div className="iso-zoom">
 						<button
 							type="button"
-							aria-label="Zoom out"
+							aria-label={T.iso.zoomOut}
 							onClick={() => engine?.zoomBy(1 / 1.2)}
 						>
 							−
 						</button>
 						<button
 							type="button"
-							aria-label="Zoom in"
+							aria-label={T.iso.zoomIn}
 							onClick={() => engine?.zoomBy(1.2)}
 						>
 							+
 						</button>
 						<button
 							type="button"
-							aria-label="Reset camera"
+							aria-label={T.iso.resetCamera}
 							onClick={() => engine?.resetCamera()}
 						>
 							⟲
@@ -964,7 +1021,7 @@ export function Instrument() {
 						<Crumbs volume={v} state={state} engine={engine as Engine} />
 					)}
 					<p className="iso-hint">
-						Click a terrace to enter · click the hub to go up · drag to orbit
+						{T.iso.hint}
 						{native ? ` · ${T.survey.rightClick}` : ""}
 					</p>
 				</div>
@@ -975,18 +1032,18 @@ export function Instrument() {
 				)}
 				<dl className="iso-telemetry">
 					<div>
-						<dt>Frame</dt>
+						<dt>{T.iso.telemetry.frame}</dt>
 						<dd>
 							{(state?.fps ?? 0).toFixed(0)} fps ·{" "}
 							{(state?.frameMs ?? 0).toFixed(1)} ms
 						</dd>
 					</div>
 					<div>
-						<dt>Sectors</dt>
+						<dt>{T.iso.telemetry.sectors}</dt>
 						<dd>{fmt.exact(state?.sectors ?? 0)}</dd>
 					</div>
 					<div>
-						<dt>Buffer</dt>
+						<dt>{T.iso.telemetry.buffer}</dt>
 						<dd>{state?.resolution ?? "—"}</dd>
 					</div>
 				</dl>
@@ -1008,19 +1065,21 @@ export function Instrument() {
 								<AlertDialogDescription>
 									<span className="iso-dialog-path">{v.path(trashNode)}</span>
 									<span className="iso-dialog-size">
-										{fmt.bytes(v.bytes[trashNode])} ·{" "}
-										{fmt.count(v.files[trashNode])}{" "}
-										{v.files[trashNode] === 1 ? "file" : "files"}
+										{T.trash.size(
+											fmt.bytes(v.bytes[trashNode]),
+											fmt.count(v.files[trashNode]),
+											v.files[trashNode],
+										)}
 									</span>
 									{trashRule && (
 										<span
 											className="iso-dialog-rule"
 											data-risk={trashRule.risk}
-											title={ISO_RISKS[trashRule.risk].hint}
+											title={riskCopy(trashRule.risk).hint}
 										>
 											{T.trash.rule(
-												trashRule.title,
-												ISO_RISKS[trashRule.risk].label,
+												ruleCopy(trashRule).title,
+												riskCopy(trashRule.risk).label,
 											)}
 										</span>
 									)}

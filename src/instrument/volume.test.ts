@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { SurveyResult } from "@/lib/bindings";
+import { setLocale } from "@/lib/text";
 import { ISO_RULES } from "./catalog";
 import { buildIsobathVolume, ISO_VOLUME } from "./demo";
 import { volumeOf } from "./survey";
@@ -148,6 +149,23 @@ function result(meta: Partial<SurveyResult["meta"]>): SurveyResult {
 
 describe("a native folder survey", () => {
 	const v = volumeOf(result({}), "2026-10-01T10:00");
+
+	it("names the loose-files piece in the UI language, keeping its stored name", () => {
+		const i = v.name.indexOf("1,204 files");
+		expect(i).toBeGreaterThan(0);
+		expect(v.label(i)).toBe("1,204 files");
+		try {
+			setLocale("zh");
+			expect(v.label(i)).toBe("1,204 个文件");
+			setLocale("ja");
+			expect(v.label(i)).toBe("1,204 ファイル");
+		} finally {
+			setLocale("en");
+		}
+		expect(v.name[i]).toBe("1,204 files");
+		// 真文件夹的名字原样
+		expect(v.label(1)).toBe(v.name[1]);
+	});
 
 	it("reads paths from the display root and back", () => {
 		const nm = v.find("~/github/app/node_modules");

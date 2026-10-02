@@ -1,8 +1,10 @@
 /**
  * 读数的写法。字节一律按十进制(1 GB = 10⁹ B,和访达一致),三位有效数字;
  * 数量按千 / 百万缩写;时间按「多久以前」。所有输出都是定位数的字符串,
- * 服务端和浏览器拼出来一模一样。
+ * 服务端和浏览器拼出来一模一样。数字、单位与千分位各语言通用,只有时长的写法跟着界面语言。
  */
+
+import { T } from "@/lib/text";
 
 const UNITS = ["B", "KB", "MB", "GB", "TB", "PB"];
 
@@ -46,13 +48,13 @@ export function pct(x: number) {
 	return `${p.toFixed(p >= 99.95 ? 0 : 1)}%`;
 }
 
-/** 距测量多少天 → today / 3 d / 5 wk / 7 mo / 2.4 yr。 */
+/** 距测量多少天 → today / 3 d / 5 wk / 7 mo / 2.4 yr(中文:今天 / 3 天 / 5 周……)。 */
 export function age(days: number) {
-	if (days < 1) return "today";
-	if (days < 14) return `${Math.round(days)} d`;
-	if (days < 60) return `${Math.round(days / 7)} wk`;
-	if (days < 365) return `${Math.round(days / 30.44)} mo`;
-	return `${(days / 365.25).toFixed(1)} yr`;
+	if (days < 1) return T.age.today;
+	if (days < 14) return T.age.days(Math.round(days));
+	if (days < 60) return T.age.weeks(Math.round(days / 7));
+	if (days < 365) return T.age.months(Math.round(days / 30.44));
+	return T.age.years((days / 365.25).toFixed(1));
 }
 
 /** 00:07.3 这种计时。 */

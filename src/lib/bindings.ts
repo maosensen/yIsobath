@@ -37,13 +37,18 @@ export const commands = {
 };
 
 /* Types */
-export type AppError = { code: "NotFound"; detail: string } | { code: "Io"; detail: string } | { code: "Db"; detail: string } | 
+export type AppError = 
+/**  The detail is the path (or the OS message) of what is missing. */
+{ code: "NotFound"; detail: string } | { code: "Io"; detail: string } | { code: "Db"; detail: string } | 
 /**  The user stopped the survey and asked for nothing to be shown. */
 { code: "Cancelled" } | 
 /**  Another survey is still walking. */
 { code: "Busy" } | 
-/**  The app declined to do it; the detail says why (shown to the user). */
-{ code: "Refused"; detail: string } | 
+/**
+ *  The app declined to do it; the detail says why, as a code the
+ *  frontend words in the UI language.
+ */
+{ code: "Refused"; detail: Refusal } | 
 /**  User-visible catch-all. Internal details belong in the logs, not here. */
 { code: "Internal" };
 
@@ -77,6 +82,25 @@ export type DevOptions_Serialize = {
 
 /**  The ten file types, in the order of `ISO_TYPE_KEYS` in the catalog. */
 export type FileKind = "vid" | "img" | "aud" | "mdl" | "src" | "bin" | "vmi" | "arc" | "doc" | "sys";
+
+/**
+ *  Why the app declined to act on a path. Crosses IPC as a stable kebab-case
+ *  code (`"in-trash"`); `src/lib/survey.ts` turns it into a sentence in the UI
+ *  language, so adding a variant is a compile error there until it is worded.
+ */
+export type Refusal = 
+/**  Nothing has been surveyed yet. */
+"no-survey" | 
+/**  Not an absolute path, or one that climbs out with `..`. */
+"not-absolute" | 
+/**  Outside the surveyed folder, or the surveyed folder itself. */
+"outside-survey" | 
+/**  A folder the system or the account depends on. */
+"protected" | 
+/**  Part of the sealed system. */
+"system" | 
+/**  Already in the Trash. */
+"in-trash";
 
 /**  What changed since the last survey of the same place. */
 export type SurveyChange = {

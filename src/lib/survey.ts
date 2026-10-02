@@ -16,6 +16,7 @@ import {
 } from "@/lib/bindings";
 import { isCommandError } from "@/lib/errors";
 import { unwrap } from "@/lib/tauri";
+import { T } from "@/lib/text";
 
 export type { SurveyPlaces, SurveyResult, SurveyTarget };
 
@@ -88,9 +89,20 @@ export function isCancel(error: unknown): boolean {
 /** A sentence for an error from any of the calls above. */
 export function errorText(error: unknown): string {
 	if (isCommandError(error)) {
-		if (error.code === "Busy") return "A survey is already running.";
-		if (error.code === "Internal") return "Something went wrong.";
-		if ("detail" in error) return error.detail;
+		switch (error.code) {
+			case "Busy":
+				return T.errors.busy;
+			case "Internal":
+				return T.errors.internal;
+			case "Refused":
+				return T.errors.refused[error.detail];
+			case "NotFound":
+				return T.errors.notFound(error.detail);
+			case "Cancelled":
+				return T.common.cancel;
+			default:
+				return error.detail;
+		}
 	}
 	return error instanceof Error ? error.message : String(error);
 }

@@ -12,7 +12,8 @@ import { IconChevronLeft } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { useWindowDrag } from "@/hooks/use-window-drag";
 import { type ChangeKind, getChangelog } from "@/lib/changelog";
-import { getLocale, T } from "@/lib/text";
+import { useLocale } from "@/lib/stores/locale-store";
+import { LANG_TAGS, T } from "@/lib/text";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/changelog")({
@@ -47,7 +48,8 @@ function ChangelogPage() {
 		};
 	}, []);
 
-	const locale = getLocale();
+	// Re-renders on a language switch; Intl takes the BCP 47 tag.
+	const locale = LANG_TAGS[useLocale()];
 	const releases = getChangelog();
 
 	// Colored category tags — built in render so labels track the locale.

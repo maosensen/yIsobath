@@ -1,5 +1,7 @@
 # yIsobath
 
+English · [简体中文](README.zh-CN.md) · [日本語](README.ja.md)
+
 A disk survey instrument for the desktop. Survey the whole data volume, your
 home folder or any folder, and see it as a stepped relief: one terrace per
 folder level, an arc per byte, with lenses for file type, age and reclaimable
@@ -27,6 +29,18 @@ Here a Rust walker surveys the real disk.
 - It **moves to the Trash, never deletes**. Every move asks first. The
   survey's root, system folders, account folders (`~/Library`,
   `~/Documents`…) and anything already in the Trash are refused.
+
+## Download
+
+Get it from [Releases](https://github.com/maosensen/yIsobath/releases/latest):
+the `.dmg` for macOS (`aarch64` for Apple silicon, `x64` for Intel; signed with
+a Developer ID and notarized), `.msi` or `-setup.exe` for Windows (not signed
+yet, so SmartScreen warns on first install), `.deb`, `.rpm` or `.AppImage` for
+Linux. Installed copies check for updates on launch.
+
+The interface is in English, Simplified Chinese and Japanese. It follows the
+system language on first launch; switch from the menu at the right end of the
+top bar.
 
 ## Stack
 
@@ -72,6 +86,7 @@ pnpm tauri build  # production bundle
 src/
   instrument/        # the Isobath instrument (engine, WebGL relief, overlay, panels, rules, demo volume)
   lib/survey.ts      # the instrument's IPC boundary
+  lib/i18n/          # en / zh / ja copy, the instrument's included
   routes/index.tsx   # the window: the instrument, edge to edge
 src-tauri/src/
   survey/            # walk · emit (folding) · classify (types and rule tags) · system (volume, FDA, Trash guard)

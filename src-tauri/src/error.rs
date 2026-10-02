@@ -14,6 +14,7 @@ use serde::Serialize;
 #[derive(Debug, thiserror::Error, Serialize, specta::Type)]
 #[serde(tag = "code", content = "detail")]
 pub enum AppError {
+    /// The detail is the path (or the OS message) of what is missing.
     #[error("not found: {0}")]
     NotFound(String),
     #[error("io error: {0}")]
@@ -26,12 +27,47 @@ pub enum AppError {
     /// Another survey is still walking.
     #[error("busy")]
     Busy,
-    /// The app declined to do it; the detail says why (shown to the user).
+    /// The app declined to do it; the detail says why, as a code the
+    /// frontend words in the UI language.
     #[error("refused: {0}")]
-    Refused(String),
+    Refused(Refusal),
     /// User-visible catch-all. Internal details belong in the logs, not here.
     #[error("internal error")]
     Internal,
+}
+
+/// Why the app declined to act on a path. Crosses IPC as a stable kebab-case
+/// code (`"in-trash"`); `src/lib/survey.ts` turns it into a sentence in the UI
+/// language, so adding a variant is a compile error there until it is worded.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, specta::Type)]
+#[serde(rename_all = "kebab-case")]
+pub enum Refusal {
+    /// Nothing has been surveyed yet.
+    NoSurvey,
+    /// Not an absolute path, or one that climbs out with `..`.
+    NotAbsolute,
+    /// Outside the surveyed folder, or the surveyed folder itself.
+    OutsideSurvey,
+    /// A folder the system or the account depends on.
+    Protected,
+    /// Part of the sealed system.
+    System,
+    /// Already in the Trash.
+    InTrash,
+}
+
+/// English, for the log.
+impl std::fmt::Display for Refusal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Refusal::NoSurvey => "nothing has been surveyed yet",
+            Refusal::NotAbsolute => "not an absolute path",
+            Refusal::OutsideSurvey => "outside the surveyed folder",
+            Refusal::Protected => "a folder the system or your account depends on",
+            Refusal::System => "part of the system",
+            Refusal::InTrash => "already in the Trash",
+        })
+    }
 }
 
 /// Convenience alias for command return types.

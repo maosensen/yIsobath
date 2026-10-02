@@ -21,7 +21,8 @@
 ## CHANGELOG
 
 - `CHANGELOG.md`,Keep a Changelog,英文
-- 应用内 What's New:`src/lib/changelog/en.ts`(单语,英文;release 带 title/summary,change 带 kind/title/text,text 不以标题开头)。建账时为空数组,首次发版时补第一条
+- 应用内 What's New:`src/lib/changelog/{en,zh,ja}.ts` 三份同构(release 带 title/summary,change 带 kind/title/text,text 不以标题开头)。**每个版本三份都要加**,类型上 `Record<LocaleCode, …>` 少一份就编译不过,但内容对不对齐要自己核
+- 界面三语:新增或改动的界面文字三份词典(`src/lib/i18n/{en,zh,ja}.ts`)同一个 commit 里改齐;CHANGELOG / Release notes 仍只写英文
 
 ## 发布渠道
 

@@ -3,6 +3,24 @@ import type { ChangelogRelease } from "./index";
 /** 精选的更新说明,新的在前。与 `en.ts` 一一对应。 */
 export const zh: ChangelogRelease[] = [
 	{
+		version: "0.1.1",
+		date: "2026-10-02",
+		title: "用你的语言",
+		summary: "yIsobath 现在也说简体中文和日语，仪器本身也一样。",
+		changes: [
+			{
+				kind: "new",
+				title: "中文与日本語",
+				text: "面板、图例、浮雕上的读数、清理规则和移到废纸篓的确认框都已翻译。第一次启动时跟随系统语言。",
+			},
+			{
+				kind: "new",
+				title: "切换语言不丢画面",
+				text: "在顶栏最右端的菜单里切换语言，眼前的测量原样不动，顶部菜单栏也一起换。",
+			},
+		],
+	},
+	{
 		version: "0.1.0",
 		date: "2026-10-01",
 		title: "测量你自己的磁盘",

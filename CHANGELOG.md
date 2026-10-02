@@ -6,16 +6,21 @@ All notable changes to yIsobath are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-02
+
 ### Added
 
-- **Chinese and Japanese.** The whole interface, the instrument included, now
-  also speaks Simplified Chinese and Japanese: panels, legends, the readouts
-  and labels drawn on the relief, the reclaimable-space rules, the Trash
-  dialog, the reasons a move is refused, and the menu bar. The first launch
-  follows the system language. Switch any time from the language menu at the right end of
-  the top bar; the survey on screen stays where it is. Chinese and Japanese
-  each get their own system font, so shared characters are drawn the way that
-  language draws them.
+- **Chinese and Japanese.** The whole interface, the instrument included,
+  now also speaks Simplified Chinese and Japanese: panels, legends, the
+  readouts and labels drawn on the relief, the reclaimable-space rules, the
+  Trash dialog, the reasons a move is refused, and the menu bar. The first
+  launch follows the system language. Switch any time from the language menu
+  at the right end of the top bar; the survey on screen stays where it is.
+- **Each language's own type.** Chinese and Japanese share many characters
+  but draw them differently, so each gets its own system font.
+- **macOS's own parts can follow.** The app now tells macOS which languages it
+  speaks, so the parts macOS draws itself, such as the folder picker, can
+  appear in Chinese or Japanese when that is the system language.
 
 ## [0.1.0] - 2026-10-01
 
@@ -57,5 +62,6 @@ All notable changes to yIsobath are documented here. The format is based on
   installs it on request. Every update is signed and verified before it is
   applied.
 
-[Unreleased]: https://github.com/maosensen/yIsobath/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/maosensen/yIsobath/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/maosensen/yIsobath/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/maosensen/yIsobath/releases/tag/v0.1.0

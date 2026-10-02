@@ -3,6 +3,24 @@ import type { ChangelogRelease } from "./index";
 /** 厳選したリリースノート。新しいものが先。`en.ts` と一対一で対応。 */
 export const ja: ChangelogRelease[] = [
 	{
+		version: "0.1.1",
+		date: "2026-10-02",
+		title: "あなたの言語で",
+		summary: "yIsobath が、計器も含めて簡体字中国語と日本語に対応しました。",
+		changes: [
+			{
+				kind: "new",
+				title: "中文と日本語",
+				text: "パネル、凡例、レリーフ上の読み、片付けのルール、ゴミ箱の確認ダイアログまで翻訳しました。初回起動時はシステムの言語に合わせます。",
+			},
+			{
+				kind: "new",
+				title: "表示を保ったまま切り替え",
+				text: "上部バー右端のメニューで言語を切り替えても、表示中の測量はそのまま。メニューバーも一緒に切り替わります。",
+			},
+		],
+	},
+	{
 		version: "0.1.0",
 		date: "2026-10-01",
 		title: "自分のディスクを測量する",

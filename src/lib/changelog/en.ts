@@ -3,6 +3,25 @@ import type { ChangelogRelease } from "./index";
 /** Curated release notes, newest first. */
 export const en: ChangelogRelease[] = [
 	{
+		version: "0.1.1",
+		date: "2026-10-02",
+		title: "In your language",
+		summary:
+			"yIsobath now also speaks Simplified Chinese and Japanese, the instrument included.",
+		changes: [
+			{
+				kind: "new",
+				title: "中文 and 日本語",
+				text: "Panels, legends, the readouts on the relief, the rules and the Trash dialog are all translated. The first launch follows the system language.",
+			},
+			{
+				kind: "new",
+				title: "Switch without losing your place",
+				text: "Change the language from the menu at the right end of the top bar; the survey on screen stays where it is, and the menu bar follows.",
+			},
+		],
+	},
+	{
 		version: "0.1.0",
 		date: "2026-10-01",
 		title: "Survey your own disk",

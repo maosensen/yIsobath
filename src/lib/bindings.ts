@@ -33,6 +33,12 @@ export const commands = {
 	moveToTrash: (path: string) => typedError<SurveyResult_Serialize, AppError>(__TAURI_INVOKE("move_to_trash", { path })),
 	/**  Open the Full Disk Access pane of System Settings. */
 	openPrivacySettings: () => typedError<null, AppError>(__TAURI_INVOKE("open_privacy_settings")),
+	/**
+	 *  Word the app menu in the UI language. The frontend sends the labels from
+	 *  its catalogs at launch and on every language switch (macOS only: other
+	 *  platforms have no app menu).
+	 */
+	setAppMenu: (words: MenuWords) => typedError<null, AppError>(__TAURI_INVOKE("set_app_menu", { words })),
 	devOptions: () => __TAURI_INVOKE<DevOptions_Serialize>("dev_options"),
 };
 
@@ -82,6 +88,30 @@ export type DevOptions_Serialize = {
 
 /**  The ten file types, in the order of `ISO_TYPE_KEYS` in the catalog. */
 export type FileKind = "vid" | "img" | "aud" | "mdl" | "src" | "bin" | "vmi" | "arc" | "doc" | "sys";
+
+/**  Every label of the app menu, in the UI language. */
+export type MenuWords = {
+	about: string,
+	services: string,
+	hide: string,
+	hideOthers: string,
+	quit: string,
+	file: string,
+	closeWindow: string,
+	edit: string,
+	undo: string,
+	redo: string,
+	cut: string,
+	copy: string,
+	paste: string,
+	selectAll: string,
+	view: string,
+	fullscreen: string,
+	window: string,
+	minimize: string,
+	zoom: string,
+	help: string,
+};
 
 /**
  *  Why the app declined to act on a path. Crosses IPC as a stable kebab-case

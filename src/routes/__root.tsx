@@ -1,8 +1,10 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { Providers } from "@/components/providers";
 import { Toaster } from "@/components/ui/sonner";
 import { useUpdateCheck } from "@/hooks/use-update-check";
+import { syncAppMenu } from "@/lib/app-menu";
 import { useLocale } from "@/lib/stores/locale-store";
 
 /** Injected by `createRouter` in main.tsx; consumed by route guards. */
@@ -20,7 +22,12 @@ function RootComponent() {
 	// A language switch re-renders from here down instead of remounting: the
 	// instrument holds the current survey. Routes that read `T` also call
 	// useLocale(), since the router's Outlet may skip an unchanged subtree.
-	useLocale();
+	const locale = useLocale();
+	// The native app menu is worded from the same catalogs, so it follows too
+	// biome-ignore lint/correctness/useExhaustiveDependencies: re-run on a switch
+	useEffect(() => {
+		void syncAppMenu();
+	}, [locale]);
 	return (
 		<Providers>
 			<Outlet />

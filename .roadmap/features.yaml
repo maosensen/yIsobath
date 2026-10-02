@@ -166,6 +166,7 @@ features:
       14 条规则、时长写法)一并收进各语言的词典;Rust 拒绝移到废纸篓的理由改成稳定的代码,由前端翻译。
       中日文备选字体按 <html lang> 换(苹方 / 冬青黑体)。本机系统语言 ja-JP,首次启动即日文;在真实窗口里
       钻进文件夹后切换中文,焦点与测量都在。另加中文、日文 README 方便分享。
+      顶部应用菜单也照 T.menu 重建(Rust 只排版);Info.plist 声明三种语言,系统自己的面板跟系统语言。
   - id: desktop-shell
     title: 桌面外壳(继承自 yDesktopTemplate v0.2.0)
     area: 窗口与系统

@@ -11,8 +11,8 @@ All notable changes to yIsobath are documented here. The format is based on
 - **Chinese and Japanese.** The whole interface, the instrument included, now
   also speaks Simplified Chinese and Japanese: panels, legends, the readouts
   and labels drawn on the relief, the reclaimable-space rules, the Trash
-  dialog and the reasons a move is refused. The first launch follows the
-  system language. Switch any time from the language menu at the right end of
+  dialog, the reasons a move is refused, and the menu bar. The first launch
+  follows the system language. Switch any time from the language menu at the right end of
   the top bar; the survey on screen stays where it is. Chinese and Japanese
   each get their own system font, so shared characters are drawn the way that
   language draws them.

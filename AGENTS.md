@@ -117,6 +117,7 @@ The UI speaks English, Simplified Chinese and Japanese. User-facing strings live
 - Names Rust builds in English are worded at display time: the place roles (`roleText()`) and the loose-files piece "1,284 files" (`Volume.label()`). The stored `name` stays as it is: finding the focus again after a refresh matches on it.
 - Rust sends Trash refusals as codes (`Refusal`, e.g. `"in-trash"`); `errorText()` in `src/lib/survey.ts` words every IPC error.
 - What's New (`src/lib/changelog/{en,zh,ja}.ts`) gets one entry per release in each language.
+- The macOS app menu is worded from `T.menu` too: the root route calls `syncAppMenu()` (`src/lib/app-menu.ts`) at launch and on every switch, and `set_app_menu` lays it out (`src-tauri/src/menu.rs`, Tauri's default menu with our labels). `src-tauri/Info.plist` declares the three languages (`CFBundleLocalizations`), so macOS words its own parts (the folder picker, items it adds to menus, text-field context menus) — in the *system* language when it is one of them, not the in-app choice.
 
 ### The instrument (`src/instrument/`)
 
@@ -157,6 +158,7 @@ src-tauri/src/
 ├── lib.rs            # Builder + plugin registration + setup
 ├── main.rs
 ├── commands/mod.rs   # all #[tauri::command]s
+├── menu.rs           # the macOS app menu, laid out with labels from the frontend
 ├── state/mod.rs      # managed state (AppState): the last survey, the stop flag
 ├── survey/
 │   ├── mod.rs        # resolve a target, run a walk, keep the result (`Survey`)

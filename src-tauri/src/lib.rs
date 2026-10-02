@@ -1,5 +1,6 @@
 mod commands;
 mod error;
+mod menu;
 mod state;
 pub mod survey;
 
@@ -19,6 +20,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
         commands::expand_folder,
         commands::move_to_trash,
         commands::open_privacy_settings,
+        commands::set_app_menu,
         commands::dev_options
     ])
 }

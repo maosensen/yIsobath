@@ -18,6 +18,7 @@ use tauri::ipc::Channel;
 use tauri_plugin_opener::OpenerExt;
 
 use crate::error::{AppError, AppResult, Refusal};
+use crate::menu::MenuWords;
 use crate::state::AppState;
 use crate::survey::walk::{STOP_CANCEL, STOP_SHOW};
 use crate::survey::{
@@ -256,6 +257,28 @@ fn trash_context() -> trash::TrashContext {
 #[cfg(not(target_os = "macos"))]
 fn trash_context() -> trash::TrashContext {
     trash::TrashContext::default()
+}
+
+/// Word the app menu in the UI language. The frontend sends the labels from
+/// its catalogs at launch and on every language switch (macOS only: other
+/// platforms have no app menu).
+#[tauri::command]
+#[specta::specta]
+pub fn set_app_menu(words: MenuWords, app: tauri::AppHandle) -> AppResult<()> {
+    #[cfg(target_os = "macos")]
+    {
+        let menu = crate::menu::build(&app, &words).map_err(|e| {
+            log::error!("app menu: {e}");
+            AppError::Internal
+        })?;
+        app.set_menu(menu).map_err(|e| {
+            log::error!("app menu: {e}");
+            AppError::Internal
+        })?;
+    }
+    #[cfg(not(target_os = "macos"))]
+    let _ = (words, app);
+    Ok(())
 }
 
 /// Open the Full Disk Access pane of System Settings.

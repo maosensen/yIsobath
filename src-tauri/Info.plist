@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Merged into the bundle's Info.plist by Tauri. The languages the interface
+	     speaks: with them declared, macOS words its own parts of the app (the
+	     folder picker, the items it adds to the Edit menu, text-field context
+	     menus in the WebView) in the system language when it is one of these. -->
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>zh-Hans</string>
+		<string>ja</string>
+	</array>
+</dict>
+</plist>

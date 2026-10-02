@@ -108,6 +108,30 @@ export const en = {
 	language: {
 		label: "Language",
 	},
+	/** The macOS app menu (`src-tauri/src/menu.rs` lays it out). macOS's own
+	 *  wording, so it reads like every other app's menu. */
+	menu: {
+		about: "About yIsobath",
+		services: "Services",
+		hide: "Hide yIsobath",
+		hideOthers: "Hide Others",
+		quit: "Quit yIsobath",
+		file: "File",
+		closeWindow: "Close Window",
+		edit: "Edit",
+		undo: "Undo",
+		redo: "Redo",
+		cut: "Cut",
+		copy: "Copy",
+		paste: "Paste",
+		selectAll: "Select All",
+		view: "View",
+		fullscreen: "Enter Full Screen",
+		window: "Window",
+		minimize: "Minimize",
+		zoom: "Zoom",
+		help: "Help",
+	},
 	survey: {
 		label: "Survey",
 		wholeDisk: "whole disk",

@@ -14,6 +14,7 @@
 //!   per folder into one "loose" piece with a count, a byte total, the bytes per
 //!   type and a byte-weighted age.
 
+#[cfg(unix)]
 use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -157,6 +158,9 @@ pub struct Walker<'a> {
     now: SystemTime,
     stop: &'a AtomicU8,
     progress: &'a Progress,
+    /// `(device, inode)` of multiply-linked files already counted. Windows
+    /// reports no link counts here, so it has no set.
+    #[cfg(unix)]
     links: Mutex<HashSet<(u64, u64)>>,
     denied: AtomicU64,
     mounts: AtomicU64,
@@ -186,6 +190,7 @@ impl<'a> Walker<'a> {
             now: SystemTime::now(),
             stop,
             progress,
+            #[cfg(unix)]
             links: Mutex::new(HashSet::new()),
             denied: AtomicU64::new(0),
             mounts: AtomicU64::new(0),
